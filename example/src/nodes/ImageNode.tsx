@@ -252,8 +252,6 @@ function ImageComponent(props: ImageComponentProps) {
   };
 
   createEffect(() => {
-    let isMounted = true;
-
     onCleanup(
       mergeRegister(
         editor.registerCommand<MouseEvent>(
@@ -290,10 +288,6 @@ function ImageComponent(props: ImageComponentProps) {
         editor.registerCommand(KEY_ESCAPE_COMMAND, onEscape, COMMAND_PRIORITY_LOW)
       )
     );
-
-    onCleanup(() => {
-      isMounted = false;
-    });
   });
 
   const onResizeEnd = (nextWidth: number, nextHeight: number) => {
@@ -313,12 +307,15 @@ function ImageComponent(props: ImageComponentProps) {
     setIsResizing(true);
   };
 
-  const draggable = isSelected() && $isNodeSelection($getSelection());
-  const isFocused = isSelected();
+  const getDraggable = () => {
+    return editor.getEditorState().read(() => {
+      return isSelected() && $isNodeSelection($getSelection());
+    });
+  };
 
   return (
-    <div draggable={draggable}>
-      <div class={isFocused ? "image-wrapper focused" : "image-wrapper"}>
+    <div draggable={getDraggable()}>
+      <div class={isSelected() ? "image-wrapper focused" : "image-wrapper"}>
         <img
           ref={imageRef}
           src={props.src}
@@ -330,7 +327,7 @@ function ImageComponent(props: ImageComponentProps) {
           }}
           draggable="false"
         />
-        <Show when={isFocused}>
+        <Show when={isSelected()}>
           <ImageResizer
             imageRef={imageRef!}
             maxWidth={props.maxWidth}
