@@ -20,7 +20,6 @@ import {
   $createCollapsibleContentNode,
   $createCollapsibleTitleNode,
   $isCollapsibleContainerNode,
-  $isCollapsibleContentNode,
   $isCollapsibleTitleNode,
   CollapsibleContainerNode,
   CollapsibleContentNode,
