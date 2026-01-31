@@ -334,11 +334,42 @@ function FloatingLinkEditor(props: { editor: LexicalEditor }) {
   const [isEditMode, setEditMode] = createSignal(false);
   const [lastSelection, setLastSelection] = createSignal<RangeSelection | null>(null);
 
-  // Sanitize URL to prevent XSS via javascript: protocol
+  // Sanitize URL to prevent XSS via dangerous protocols (javascript:, data:, vbscript:, etc.)
   const sanitizedUrl = () => {
     const url = linkUrl();
-    if (url.toLowerCase().startsWith("javascript:")) {
-      return "#";
+    if (!url) {
+      return url;
+    }
+
+    // Use a normalized copy for checks, but return the original value on success to avoid
+    // changing existing behavior beyond security hardening.
+    let check = url;
+    try {
+      // Decode once to catch encoded schemes like "javascript%3A..."
+      check = decodeURI(check);
+    } catch {
+      // If decoding fails, fall back to the raw string
+    }
+
+    // Strip control characters and whitespace that can be used for obfuscation
+    const normalized = check.replace(/[\u0000-\u001F\u007F-\u009F\s]+/g, "").toLowerCase();
+
+    // Explicitly block known dangerous protocol prefixes
+    const dangerousPrefixes = ["javascript:", "data:", "vbscript:"];
+    for (const prefix of dangerousPrefixes) {
+      if (normalized.startsWith(prefix)) {
+        return "#";
+      }
+    }
+
+    // If there is a scheme, ensure it is one of the allowed safe schemes.
+    const schemeMatch = normalized.match(/^([a-z0-9+.-]+):/);
+    if (schemeMatch) {
+      const scheme = schemeMatch[1];
+      const allowedSchemes = new Set(["http", "https", "mailto", "tel"]);
+      if (!allowedSchemes.has(scheme)) {
+        return "#";
+      }
     }
     return url;
   };
