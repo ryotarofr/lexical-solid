@@ -91,7 +91,7 @@ export function validateYouTubeURL(url: string): ValidationResult {
  * Validate Tweet URL
  */
 export function validateTweetURL(url: string): ValidationResult {
-  const pattern = /(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/;
+  const pattern = /^(?:https?:\/\/)?(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/;
   
   if (pattern.test(url)) {
     return { isValid: true };
@@ -112,7 +112,7 @@ export function validateTweetURL(url: string): ValidationResult {
  * Validate Figma URL
  */
 export function validateFigmaURL(url: string): ValidationResult {
-  const pattern = /figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/;
+  const pattern = /^(?:https?:\/\/)?(?:www\.)?figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/;
   
   if (pattern.test(url)) {
     return { isValid: true };
