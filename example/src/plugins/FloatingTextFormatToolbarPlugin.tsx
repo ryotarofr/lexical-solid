@@ -15,7 +15,6 @@ import {
   createEffect,
   createSignal,
   onCleanup,
-  onMount,
   Show,
   JSX,
 } from "solid-js";
