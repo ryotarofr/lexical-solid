@@ -131,16 +131,27 @@ export class YouTubeNode extends DecoratorNode<() => JSX.Element> {
   }
 }
 
+function isValidYouTubeVideoID(videoID: string): boolean {
+  return /^[a-zA-Z0-9_-]{11}$/.test(videoID);
+}
+
 function YouTubeComponent(props: {
   videoID: string;
   nodeKey: NodeKey;
 }): JSX.Element {
+  if (!isValidYouTubeVideoID(props.videoID)) {
+    // Do not render an iframe when the video ID is invalid
+    return <div class="youtube-embed" />;
+  }
+
+  const safeVideoID = props.videoID;
+
   return (
     <div class="youtube-embed">
       <iframe
         width="560"
         height="315"
-        src={`https://www.youtube-nocookie.com/embed/${props.videoID}`}
+        src={`https://www.youtube-nocookie.com/embed/${safeVideoID}`}
         style={{ border: "none" }}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen
