@@ -26,21 +26,21 @@ export function useDecorators(
     Record<NodeKey, () => JSX.Element>
   >(editor.getDecorators<() => JSX.Element>());
 
-  // Subscribe to changes
-  onCleanup(
-    editor.registerDecoratorListener<() => JSX.Element>((nextDecorators) => {
-      setDecorators(nextDecorators);
-    })
-  );
-
   onMount(() => {
+    // Subscribe to changes
+    onCleanup(
+      editor.registerDecoratorListener<() => JSX.Element>((nextDecorators) => {
+        setDecorators(nextDecorators);
+      })
+    );
+
     // If the content editable mounts before the subscription is added, then
     // nothing will be rendered on initial pass. We can get around that by
     // ensuring that we set the value.
     setDecorators(editor.getDecorators<() => JSX.Element>());
   });
 
-  // Return decorators defined as React Portals
+  // Return decorators defined as Solid Portals
   return createMemo(() => {
     const decoratedPortals = [];
     const decoratorKeys = Object.keys(decorators());

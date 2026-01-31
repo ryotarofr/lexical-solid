@@ -17,10 +17,20 @@ const RichTextTheme = {
     },
     ol: "editor-list-ol",
     ul: "editor-list-ul",
-    listitem: "editor-listitem"
+    listitem: "editor-listitem",
+    listitemChecked: "editor-listitem-checked",
+    listitemUnchecked: "editor-listitem-unchecked"
   },
+  hr: "editor-hr",
+  hrSelected: "editor-hr-selected",
   image: "editor-image",
   link: "editor-link",
+  table: "editor-table",
+  tableCell: "editor-table-cell",
+  tableCellHeader: "editor-table-cell-header",
+  tableSelection: "editor-table-selection",
+  tableCellSelected: "editor-table-cell-selected",
+  tableResizer: "editor-table-cell-resizer",
   text: {
     bold: "editor-text-bold",
     italic: "editor-text-italic",
