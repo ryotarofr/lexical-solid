@@ -495,21 +495,41 @@ function ImageUrlModal(props: {
       return false;
     }
     
-    // Prevent javascript: protocol and other dangerous protocols
-    const lowerUrl = url.toLowerCase().trim();
-    if (lowerUrl.startsWith("javascript:") || 
-        lowerUrl.startsWith("data:text/html") ||
-        lowerUrl.startsWith("vbscript:")) {
+    const trimmedUrl = url.trim();
+    
+    // Decode URL to catch encoded attacks
+    let decodedUrl: string;
+    try {
+      decodedUrl = decodeURI(trimmedUrl).toLowerCase();
+    } catch {
       return false;
+    }
+    
+    // Prevent dangerous protocols
+    const dangerousProtocols = [
+      "javascript:",
+      "data:",
+      "vbscript:",
+      "file:",
+      "about:"
+    ];
+    
+    for (const protocol of dangerousProtocols) {
+      if (decodedUrl.startsWith(protocol) || 
+          decodedUrl.includes("\x00") || // null bytes
+          decodedUrl.replace(/\s/g, "").startsWith(protocol)) { // whitespace obfuscation
+        return false;
+      }
     }
 
     // Check for valid URL pattern
     try {
-      new URL(url);
-      return true;
+      const parsedUrl = new URL(trimmedUrl);
+      // Only allow http, https protocols
+      return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
     } catch {
       // If absolute URL parsing fails, check for relative URLs
-      return url.startsWith("/") || url.startsWith("./") || url.startsWith("../");
+      return trimmedUrl.startsWith("/") || trimmedUrl.startsWith("./") || trimmedUrl.startsWith("../");
     }
   };
 
