@@ -1,18 +1,31 @@
 import {
   $applyNodeReplacement,
+  $getNodeByKey,
+  $getSelection,
+  $isNodeSelection,
+  CLICK_COMMAND,
+  COMMAND_PRIORITY_LOW,
   createCommand,
   DecoratorNode,
   DOMConversionMap,
   DOMConversionOutput,
   DOMExportOutput,
   EditorConfig,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DELETE_COMMAND,
+  KEY_ENTER_COMMAND,
+  KEY_ESCAPE_COMMAND,
   LexicalCommand,
   LexicalNode,
   NodeKey,
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-import { JSX } from "solid-js";
+import { createEffect, createSignal, JSX, onCleanup, Show } from "solid-js";
+import { useLexicalComposerContext } from "lexical-solid/LexicalComposerContext";
+import { useLexicalNodeSelection } from "lexical-solid/useLexicalNodeSelection";
+import { mergeRegister } from "@lexical/utils";
+import ImageResizer from "../components/ImageResizer";
 
 export interface ImagePayload {
   src: string;
@@ -167,8 +180,6 @@ export class ImageNode extends DecoratorNode<() => JSX.Element> {
   }
 
   decorate(): () => JSX.Element {
-    // Import dynamically to avoid circular dependency
-    const { default: ImageComponent } = require("../components/ImageComponent");
     const src = this.__src;
     const altText = this.__altText;
     const width = this.__width;
@@ -186,6 +197,150 @@ export class ImageNode extends DecoratorNode<() => JSX.Element> {
       />
     );
   }
+}
+
+interface ImageComponentProps {
+  src: string;
+  altText: string;
+  width: number;
+  height: number;
+  maxWidth: number;
+  nodeKey: NodeKey;
+}
+
+function ImageComponent(props: ImageComponentProps) {
+  const [editor] = useLexicalComposerContext();
+  const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(
+    props.nodeKey
+  );
+  const [isResizing, setIsResizing] = createSignal(false);
+  let imageRef: HTMLImageElement | undefined;
+
+  const onDelete = (payload: KeyboardEvent) => {
+    if (isSelected() && $isNodeSelection($getSelection())) {
+      const event = payload;
+      event.preventDefault();
+      const node = $getNodeByKey(props.nodeKey);
+      if ($isImageNode(node)) {
+        node.remove();
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const onEnter = (event: KeyboardEvent) => {
+    const latestSelection = $getSelection();
+    if (
+      isSelected() &&
+      $isNodeSelection(latestSelection) &&
+      latestSelection.getNodes().length === 1
+    ) {
+      event.preventDefault();
+      return true;
+    }
+    return false;
+  };
+
+  const onEscape = (event: KeyboardEvent) => {
+    if (isSelected()) {
+      event.preventDefault();
+      clearSelection();
+      return true;
+    }
+    return false;
+  };
+
+  createEffect(() => {
+    let isMounted = true;
+
+    onCleanup(
+      mergeRegister(
+        editor.registerCommand<MouseEvent>(
+          CLICK_COMMAND,
+          (payload) => {
+            const event = payload;
+            if (isResizing()) {
+              return true;
+            }
+            if (event.target === imageRef) {
+              if (event.shiftKey) {
+                setSelected(!isSelected());
+              } else {
+                clearSelection();
+                setSelected(true);
+              }
+              return true;
+            }
+            return false;
+          },
+          COMMAND_PRIORITY_LOW
+        ),
+        editor.registerCommand(
+          KEY_DELETE_COMMAND,
+          onDelete,
+          COMMAND_PRIORITY_LOW
+        ),
+        editor.registerCommand(
+          KEY_BACKSPACE_COMMAND,
+          onDelete,
+          COMMAND_PRIORITY_LOW
+        ),
+        editor.registerCommand(KEY_ENTER_COMMAND, onEnter, COMMAND_PRIORITY_LOW),
+        editor.registerCommand(KEY_ESCAPE_COMMAND, onEscape, COMMAND_PRIORITY_LOW)
+      )
+    );
+
+    onCleanup(() => {
+      isMounted = false;
+    });
+  });
+
+  const onResizeEnd = (nextWidth: number, nextHeight: number) => {
+    setTimeout(() => {
+      setIsResizing(false);
+    }, 200);
+
+    editor.update(() => {
+      const node = $getNodeByKey(props.nodeKey);
+      if ($isImageNode(node)) {
+        node.setWidthAndHeight(nextWidth, nextHeight);
+      }
+    });
+  };
+
+  const onResizeStart = () => {
+    setIsResizing(true);
+  };
+
+  const draggable = isSelected() && $isNodeSelection($getSelection());
+  const isFocused = isSelected();
+
+  return (
+    <div draggable={draggable}>
+      <div class={isFocused ? "image-wrapper focused" : "image-wrapper"}>
+        <img
+          ref={imageRef}
+          src={props.src}
+          alt={props.altText}
+          style={{
+            width: props.width ? `${props.width}px` : "inherit",
+            height: props.height ? `${props.height}px` : "inherit",
+            "max-width": `${props.maxWidth}px`,
+          }}
+          draggable="false"
+        />
+        <Show when={isFocused}>
+          <ImageResizer
+            imageRef={imageRef!}
+            maxWidth={props.maxWidth}
+            onResizeStart={onResizeStart}
+            onResizeEnd={onResizeEnd}
+          />
+        </Show>
+      </div>
+    </div>
+  );
 }
 
 export function $createImageNode({
