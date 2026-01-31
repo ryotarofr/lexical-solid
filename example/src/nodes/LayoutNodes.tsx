@@ -1,6 +1,5 @@
 import {
   $applyNodeReplacement,
-  $createParagraphNode,
   createCommand,
   DOMConversionMap,
   DOMConversionOutput,
@@ -8,7 +7,6 @@ import {
   EditorConfig,
   ElementNode,
   LexicalCommand,
-  LexicalEditor,
   LexicalNode,
   NodeKey,
   SerializedElementNode,
