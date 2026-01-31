@@ -334,12 +334,36 @@ function FloatingLinkEditor(props: { editor: LexicalEditor }) {
   const [isEditMode, setEditMode] = createSignal(false);
   const [lastSelection, setLastSelection] = createSignal<RangeSelection | null>(null);
 
-  // Sanitize URL to prevent XSS via javascript: protocol
+  // Sanitize URL to prevent XSS via dangerous protocols
   const sanitizedUrl = () => {
     const url = linkUrl();
-    if (url.toLowerCase().startsWith("javascript:")) {
+    if (!url) return "#";
+    
+    // Decode URL to catch encoded attacks
+    let decodedUrl: string;
+    try {
+      decodedUrl = decodeURI(url).toLowerCase();
+    } catch {
       return "#";
     }
+    
+    // Prevent dangerous protocols
+    const dangerousProtocols = [
+      "javascript:",
+      "data:",
+      "vbscript:",
+      "file:",
+      "about:"
+    ];
+    
+    for (const protocol of dangerousProtocols) {
+      if (decodedUrl.startsWith(protocol) || 
+          decodedUrl.includes("\x00") || // null bytes
+          decodedUrl.replace(/\s/g, "").startsWith(protocol)) { // whitespace obfuscation
+        return "#";
+      }
+    }
+    
     return url;
   };
 
