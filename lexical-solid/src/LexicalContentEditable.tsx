@@ -56,6 +56,7 @@ function Placeholder(props: {
 
   const [isEditable, setEditable] = createSignal(props.editor.isEditable());
   onMount(() => {
+    setEditable(props.editor.isEditable());
     onCleanup(
       props.editor.registerEditableListener((currentIsEditable) => {
         setEditable(currentIsEditable);
