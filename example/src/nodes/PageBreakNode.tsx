@@ -1,5 +1,6 @@
 import {
   $applyNodeReplacement,
+  $getNodeByKey,
   createCommand,
   DecoratorNode,
   DOMConversionMap,
@@ -110,11 +111,7 @@ function PageBreakComponent(props: { nodeKey: NodeKey }): JSX.Element {
     if (isSelected() && (e.key === "Backspace" || e.key === "Delete")) {
       e.preventDefault();
       editor.update(() => {
-        const node = editor
-          .getEditorState()
-          .read(() =>
-            editor.getEditorState()._nodeMap.get(props.nodeKey)
-          );
+        const node = $getNodeByKey(props.nodeKey);
         if (node) {
           node.remove();
         }
