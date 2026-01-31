@@ -56,6 +56,9 @@ function Placeholder(props: {
 
   const [isEditable, setEditable] = createSignal(props.editor.isEditable());
   onMount(() => {
+    // Set the initial state to ensure UI is in sync with editor state on mount.
+    // This prevents race conditions where the editor's editable state might change
+    // between signal creation and listener registration.
     setEditable(props.editor.isEditable());
     onCleanup(
       props.editor.registerEditableListener((currentIsEditable) => {
