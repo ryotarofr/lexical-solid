@@ -57,6 +57,8 @@ import LayoutPlugin from "../plugins/LayoutPlugin";
 import { LayoutContainerNode, LayoutItemNode } from "../nodes/LayoutNodes";
 import PageBreakPlugin from "../plugins/PageBreakPlugin";
 import { PageBreakNode } from "../nodes/PageBreakNode";
+import DraggableBlockPlugin from "../plugins/DraggableBlockPlugin";
+import TableActionMenuPlugin from "../plugins/TableActionMenuPlugin";
 //import { EmojiNode } from "./nodes/EmojiNode";
 //import EmoticonPlugin from "./plugins/EmoticonPlugin";
 
@@ -133,6 +135,7 @@ export default function Editor() {
           <HorizontalRulePlugin />
           <ImagesPlugin />
           <TablePlugin hasCellMerge={true} hasCellBackgroundColor={true} />
+          <TableActionMenuPlugin />
           <LexicalMarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <AutoFocusPlugin />
           <OnChangePlugin onChange={onChange} />
@@ -150,6 +153,7 @@ export default function Editor() {
           <CollapsiblePlugin />
           <LayoutPlugin />
           <PageBreakPlugin />
+          <DraggableBlockPlugin />
         </div>
       </div>
     </LexicalComposer>

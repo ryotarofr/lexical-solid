@@ -70,7 +70,7 @@ h1 {
   position: relative;
   tab-size: 1;
   outline: 0;
-  padding: 15px 10px;
+  padding: 15px 10px 15px 28px;
   caret-color: #444;
 }
 
@@ -80,7 +80,7 @@ h1 {
   position: absolute;
   text-overflow: ellipsis;
   top: 15px;
-  left: 10px;
+  left: 28px;
   font-size: 15px;
   user-select: none;
   display: inline-block;
@@ -1293,4 +1293,213 @@ i.justify-align {
   .page-break-label {
     display: none;
   }
+}
+
+/* Draggable Block Plugin */
+.draggable-block-menu {
+  position: absolute;
+  left: 0;
+  top: 0;
+  cursor: grab;
+  opacity: 0;
+  padding: 4px 2px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  will-change: transform, opacity;
+}
+
+.draggable-block-menu:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.draggable-block-menu:active {
+  cursor: grabbing;
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+.draggable-block-menu svg {
+  width: 16px;
+  height: 16px;
+  color: #666;
+  opacity: 0.5;
+  display: block;
+}
+
+.draggable-block-menu:hover svg {
+  opacity: 0.8;
+}
+
+.draggable-block-target-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 4px;
+  background-color: #216fdb;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Table Action Menu Plugin */
+.table-cell-action-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s, background-color 0.2s;
+  z-index: 10;
+  padding: 0;
+}
+
+.table-cell-action-button:hover {
+  opacity: 1;
+  background-color: #f5f5f5;
+}
+
+.table-cell-action-button svg {
+  width: 14px;
+  height: 14px;
+  color: #666;
+}
+
+.table-action-menu-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+
+.table-action-menu {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  padding: 8px 0;
+  overflow: hidden;
+}
+
+.table-action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.table-action-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.table-action-menu-item svg {
+  width: 16px;
+  height: 16px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.table-action-menu-item.danger {
+  color: #dc3545;
+}
+
+.table-action-menu-item.danger svg {
+  color: #dc3545;
+}
+
+.table-action-menu-item.danger:hover {
+  background-color: #fff5f5;
+}
+
+.table-action-menu-item.has-submenu {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+}
+
+.table-action-menu-item.has-submenu > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+}
+
+.table-action-menu-item.has-submenu > button:hover {
+  background-color: #f5f5f5;
+}
+
+.table-action-menu-item.has-submenu > button svg {
+  width: 16px;
+  height: 16px;
+  color: #666;
+}
+
+.table-action-menu-item.has-submenu > button span {
+  flex: 1;
+}
+
+.table-action-menu-divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 8px 0;
+}
+
+/* Color Picker */
+.table-action-color-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid #eee;
+}
+
+.color-picker-item {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.color-picker-item:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.color-picker-item.selected {
+  border-color: #216fdb;
+  border-width: 2px;
+}
+
+.color-picker-item.clear {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #999;
 }

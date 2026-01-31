@@ -10,7 +10,9 @@
       "Bash(cat:*)",
       "Bash(findstr:*)",
       "Bash(ls:*)",
-      "Bash(npm pack:*)"
+      "Bash(npm pack:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:lexical.dev)"
     ]
   }
 }

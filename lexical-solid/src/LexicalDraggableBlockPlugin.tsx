@@ -437,8 +437,8 @@ function useDraggableBlockMenu(
 
 export function DraggableBlockPlugin_EXPERIMENTAL(props: {
   anchorElem?: HTMLElement;
-  menuRef: HTMLElement | null | undefined;
-  targetLineRef: HTMLElement | null | undefined;
+  menuRef: Accessor<HTMLElement | null>;
+  targetLineRef: Accessor<HTMLElement | null>;
   menuComponent: JSX.Element;
   targetLineComponent: JSX.Element;
   isOnMenu: (element: HTMLElement) => boolean;
@@ -448,8 +448,8 @@ export function DraggableBlockPlugin_EXPERIMENTAL(props: {
   return useDraggableBlockMenu(
     editor,
     props.anchorElem || document.body,
-    () => props.menuRef || null,
-    () => props.targetLineRef || null,
+    props.menuRef,
+    props.targetLineRef,
     editor._editable,
     props.menuComponent,
     props.targetLineComponent,
