@@ -6,7 +6,6 @@ import {
   DOMConversionOutput,
   DOMExportOutput,
   EditorConfig,
-  ElementFormatType,
   LexicalCommand,
   LexicalEditor,
   LexicalNode,
