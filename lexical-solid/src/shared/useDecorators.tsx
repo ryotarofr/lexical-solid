@@ -9,8 +9,10 @@ import {
   createComponent,
   Suspense,
   onCleanup,
+  useContext,
 } from "solid-js";
 import { Dynamic, Portal } from "solid-js/web";
+import { LexicalComposerContext } from "../LexicalComposerContext";
 
 type ErrorBoundaryProps = {
   children: JSX.Element;
@@ -22,25 +24,26 @@ export function useDecorators(
   editor: LexicalEditor,
   ErrorBoundary: ErrorBoundaryType
 ): Accessor<JSX.Element[]> {
+  const composerContext = useContext(LexicalComposerContext);
   const [decorators, setDecorators] = createSignal<
     Record<NodeKey, () => JSX.Element>
   >(editor.getDecorators<() => JSX.Element>());
 
-  // Subscribe to changes
-  onCleanup(
-    editor.registerDecoratorListener<() => JSX.Element>((nextDecorators) => {
-      setDecorators(nextDecorators);
-    })
-  );
-
   onMount(() => {
+    // Subscribe to changes
+    onCleanup(
+      editor.registerDecoratorListener<() => JSX.Element>((nextDecorators) => {
+        setDecorators(nextDecorators);
+      })
+    );
+
     // If the content editable mounts before the subscription is added, then
     // nothing will be rendered on initial pass. We can get around that by
     // ensuring that we set the value.
     setDecorators(editor.getDecorators<() => JSX.Element>());
   });
 
-  // Return decorators defined as React Portals
+  // Return decorators defined as Solid Portals
   return createMemo(() => {
     const decoratedPortals = [];
     const decoratorKeys = Object.keys(decorators());
@@ -48,13 +51,15 @@ export function useDecorators(
     for (let i = 0; i < decoratorKeys.length; i++) {
       const nodeKey = decoratorKeys[i];
       const decorator = (
-        <ErrorBoundary
-          onError={(error, reset) => editor._onError(error) as undefined}
-        >
-          <Suspense fallback={null}>
-            <Dynamic component={decorators()[nodeKey]} />
-          </Suspense>
-        </ErrorBoundary>
+        <LexicalComposerContext.Provider value={composerContext}>
+          <ErrorBoundary
+            onError={(error, reset) => editor._onError(error) as undefined}
+          >
+            <Suspense fallback={null}>
+              <Dynamic component={decorators()[nodeKey]} />
+            </Suspense>
+          </ErrorBoundary>
+        </LexicalComposerContext.Provider>
       );
       const element = editor.getElementByKey(nodeKey);
 

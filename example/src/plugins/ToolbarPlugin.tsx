@@ -1,5 +1,6 @@
-//TODO: update and fix this
 import { useLexicalComposerContext } from "lexical-solid/LexicalComposerContext";
+import { INSERT_HORIZONTAL_RULE_COMMAND } from "lexical-solid/LexicalHorizontalRuleNode";
+import { INSERT_IMAGE_COMMAND } from "../nodes/ImageNode";
 import {
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
@@ -13,16 +14,10 @@ import {
   $createParagraphNode,
   $getNodeByKey,
   RangeSelection,
-  ElementNode,
-  LexicalNode,
   LexicalEditor,
 } from "lexical";
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
-import {
-  $isParentElementRTL,
-  $wrapLeafNodesInElements,
-  $isAtNodeEnd,
-} from "@lexical/selection";
+import { $setBlocksType, $isAtNodeEnd } from "@lexical/selection";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
 import {
   INSERT_ORDERED_LIST_COMMAND,
@@ -35,6 +30,7 @@ import {
   $createHeadingNode,
   $createQuoteNode,
   $isHeadingNode,
+  HeadingTagType,
 } from "@lexical/rich-text";
 import {
   $createCodeNode,
@@ -42,6 +38,7 @@ import {
   getDefaultCodeLanguage,
   getCodeLanguages,
 } from "@lexical/code";
+import { INSERT_TABLE_COMMAND } from "@lexical/table";
 import { Portal } from "solid-js/web";
 import {
   createEffect,
@@ -51,6 +48,7 @@ import {
   JSX,
   onCleanup,
   onMount,
+  Show,
 } from "solid-js";
 
 const LowPriority = 1;
@@ -61,28 +59,263 @@ const supportedBlockTypes = new Set([
   "code",
   "h1",
   "h2",
+  "h3",
   "ul",
   "ol",
 ]);
 
-const blockTypeToBlockName = {
+const blockTypeToBlockName: Record<string, string> = {
   code: "Code Block",
-  h1: "Large Heading",
-  h2: "Small Heading",
-  h3: "Heading",
-  h4: "Heading",
-  h5: "Heading",
+  h1: "Heading 1",
+  h2: "Heading 2",
+  h3: "Heading 3",
+  h4: "Heading 4",
+  h5: "Heading 5",
   ol: "Numbered List",
   paragraph: "Normal",
   quote: "Quote",
   ul: "Bulleted List",
 };
 
+// SVG Icons as components
+function IconUndo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 7v6h6" />
+      <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+    </svg>
+  );
+}
+
+function IconRedo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 7v6h-6" />
+      <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+    </svg>
+  );
+}
+
+function IconBold() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
+      <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
+    </svg>
+  );
+}
+
+function IconItalic() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="19" y1="4" x2="10" y2="4" />
+      <line x1="14" y1="20" x2="5" y2="20" />
+      <line x1="15" y1="4" x2="9" y2="20" />
+    </svg>
+  );
+}
+
+function IconUnderline() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3" />
+      <line x1="4" y1="21" x2="20" y2="21" />
+    </svg>
+  );
+}
+
+function IconStrikethrough() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M16 4H9a3 3 0 0 0-3 3v0a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H8" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+    </svg>
+  );
+}
+
+function IconCode() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function IconLink() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+function IconAlignLeft() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="17" y1="10" x2="3" y2="10" />
+      <line x1="21" y1="6" x2="3" y2="6" />
+      <line x1="21" y1="14" x2="3" y2="14" />
+      <line x1="17" y1="18" x2="3" y2="18" />
+    </svg>
+  );
+}
+
+function IconAlignCenter() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="10" x2="6" y2="10" />
+      <line x1="21" y1="6" x2="3" y2="6" />
+      <line x1="21" y1="14" x2="3" y2="14" />
+      <line x1="18" y1="18" x2="6" y2="18" />
+    </svg>
+  );
+}
+
+function IconAlignRight() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="21" y1="10" x2="7" y2="10" />
+      <line x1="21" y1="6" x2="3" y2="6" />
+      <line x1="21" y1="14" x2="3" y2="14" />
+      <line x1="21" y1="18" x2="7" y2="18" />
+    </svg>
+  );
+}
+
+function IconAlignJustify() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="21" y1="10" x2="3" y2="10" />
+      <line x1="21" y1="6" x2="3" y2="6" />
+      <line x1="21" y1="14" x2="3" y2="14" />
+      <line x1="21" y1="18" x2="3" y2="18" />
+    </svg>
+  );
+}
+
+function IconParagraph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M13 4v16" />
+      <path d="M17 4v16" />
+      <path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13" />
+    </svg>
+  );
+}
+
+function IconH1() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 12h8" />
+      <path d="M4 18V6" />
+      <path d="M12 18V6" />
+      <path d="M17 12l3-2v8" />
+    </svg>
+  );
+}
+
+function IconH2() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 12h8" />
+      <path d="M4 18V6" />
+      <path d="M12 18V6" />
+      <path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1" />
+    </svg>
+  );
+}
+
+function IconH3() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 12h8" />
+      <path d="M4 18V6" />
+      <path d="M12 18V6" />
+      <path d="M17.5 10.5c1.7-1 3.5 0 3.5 1.5a2 2 0 0 1-2 2" />
+      <path d="M17 17.5c2 1.5 4 .3 4-1.5a2 2 0 0 0-2-2" />
+    </svg>
+  );
+}
+
+function IconBulletList() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <circle cx="4" cy="6" r="1" fill="currentColor" />
+      <circle cx="4" cy="12" r="1" fill="currentColor" />
+      <circle cx="4" cy="18" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconNumberedList() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="10" y1="6" x2="21" y2="6" />
+      <line x1="10" y1="12" x2="21" y2="12" />
+      <line x1="10" y1="18" x2="21" y2="18" />
+      <text x="2" y="8" font-size="8" fill="currentColor" stroke="none">1</text>
+      <text x="2" y="14" font-size="8" fill="currentColor" stroke="none">2</text>
+      <text x="2" y="20" font-size="8" fill="currentColor" stroke="none">3</text>
+    </svg>
+  );
+}
+
+function IconQuote() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+    </svg>
+  );
+}
+
+function IconChevronDown() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function IconHorizontalRule() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12" />
+    </svg>
+  );
+}
+
+function IconImage() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+    </svg>
+  );
+}
+
+function IconTable() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+  );
+}
+
 function Divider() {
   return <div class="divider" />;
 }
 
-function positionEditorElement(editor, rect) {
+function positionEditorElement(editor: HTMLElement, rect: DOMRect | null) {
   if (rect === null) {
     editor.style.opacity = "0";
     editor.style.top = "-1000px";
@@ -90,18 +323,25 @@ function positionEditorElement(editor, rect) {
   } else {
     editor.style.opacity = "1";
     editor.style.top = `${rect.top + rect.height + window.pageYOffset + 10}px`;
-    editor.style.left = `${rect.left + window.pageXOffset - editor.offsetWidth / 2 + rect.width / 2
-      }px`;
+    editor.style.left = `${rect.left + window.pageXOffset - editor.offsetWidth / 2 + rect.width / 2}px`;
   }
 }
 
-function FloatingLinkEditor({ editor }) {
+function FloatingLinkEditor(props: { editor: LexicalEditor }) {
   let editorRef!: HTMLDivElement;
   let inputRef!: HTMLInputElement;
-  const mouseDownRef = false;
   const [linkUrl, setLinkUrl] = createSignal("");
   const [isEditMode, setEditMode] = createSignal(false);
-  const [lastSelection, setLastSelection] = createSignal(null);
+  const [lastSelection, setLastSelection] = createSignal<RangeSelection | null>(null);
+
+  // Sanitize URL to prevent XSS via javascript: protocol
+  const sanitizedUrl = () => {
+    const url = linkUrl();
+    if (url.toLowerCase().startsWith("javascript:")) {
+      return "#";
+    }
+    return url;
+  };
 
   const updateLinkEditor = () => {
     const selection = $getSelection();
@@ -124,17 +364,18 @@ function FloatingLinkEditor({ editor }) {
       return;
     }
 
-    const rootElement = editor.getRootElement();
+    const rootElement = props.editor.getRootElement();
     if (
       selection !== null &&
+      nativeSelection &&
       !nativeSelection.isCollapsed &&
       rootElement !== null &&
       rootElement.contains(nativeSelection.anchorNode)
     ) {
       const domRange = nativeSelection.getRangeAt(0);
-      let rect;
+      let rect: DOMRect;
       if (nativeSelection.anchorNode === rootElement) {
-        let inner = rootElement;
+        let inner: Element = rootElement;
         while (inner.firstElementChild != null) {
           inner = inner.firstElementChild;
         }
@@ -143,9 +384,7 @@ function FloatingLinkEditor({ editor }) {
         rect = domRange.getBoundingClientRect();
       }
 
-      if (!mouseDownRef) {
-        positionEditorElement(editorElem, rect);
-      }
+      positionEditorElement(editorElem, rect);
       setLastSelection(selection as RangeSelection);
     } else if (!activeElement || activeElement.className !== "link-input") {
       positionEditorElement(editorElem, null);
@@ -159,22 +398,24 @@ function FloatingLinkEditor({ editor }) {
 
   createEffect(() => {
     updateLinkEditor();
-    onCleanup(mergeRegister(
-      editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          updateLinkEditor();
-        });
-      }),
+    onCleanup(
+      mergeRegister(
+        props.editor.registerUpdateListener(({ editorState }) => {
+          editorState.read(() => {
+            updateLinkEditor();
+          });
+        }),
 
-      editor.registerCommand(
-        SELECTION_CHANGE_COMMAND,
-        () => {
-          updateLinkEditor();
-          return true;
-        },
-        LowPriority
+        props.editor.registerCommand(
+          SELECTION_CHANGE_COMMAND,
+          () => {
+            updateLinkEditor();
+            return true;
+          },
+          LowPriority
+        )
       )
-    ));
+    );
   });
 
   createEffect(() => {
@@ -185,33 +426,11 @@ function FloatingLinkEditor({ editor }) {
 
   return (
     <div ref={editorRef} class="link-editor">
-      {isEditMode() ? (
-        <input
-          ref={inputRef}
-          class="link-input"
-          value={linkUrl()}
-          onChange={(event) => {
-            setLinkUrl(event.currentTarget.value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              if (lastSelection !== null) {
-                if (linkUrl() !== "") {
-                  editor.dispatchCommand(TOGGLE_LINK_COMMAND, linkUrl);
-                }
-                setEditMode(false);
-              }
-            } else if (event.key === "Escape") {
-              event.preventDefault();
-              setEditMode(false);
-            }
-          }}
-        />
-      ) : (
-        <>
+      <Show
+        when={isEditMode()}
+        fallback={
           <div class="link-input">
-            <a href={linkUrl()} target="_blank" rel="noopener noreferrer">
+            <a href={sanitizedUrl()} target="_blank" rel="noopener noreferrer">
               {linkUrl()}
             </a>
             <div
@@ -222,10 +441,39 @@ function FloatingLinkEditor({ editor }) {
               onClick={() => {
                 setEditMode(true);
               }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setEditMode(true);
+                }
+              }}
             />
           </div>
-        </>
-      )}
+        }
+      >
+        <input
+          ref={inputRef}
+          class="link-input"
+          value={linkUrl()}
+          onChange={(event) => {
+            setLinkUrl(event.currentTarget.value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (lastSelection() !== null) {
+                if (linkUrl() !== "") {
+                  props.editor.dispatchCommand(TOGGLE_LINK_COMMAND, linkUrl());
+                }
+                setEditMode(false);
+              }
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              setEditMode(false);
+            }
+          }}
+        />
+      </Show>
     </div>
   );
 }
@@ -233,27 +481,18 @@ function FloatingLinkEditor({ editor }) {
 function Select(props: {
   onChange: JSX.EventHandlerUnion<HTMLSelectElement, Event>;
   class: string;
-  options: any;
+  options: string[];
   value: string;
 }) {
   return (
-    <select
-      class={props.class}
-      onChange={props.onChange}
-      value={props.value}
-    >
+    <select class={props.class} onChange={props.onChange} value={props.value}>
       <option hidden={true} value="" />
-      <For each={props.options}>
-        {(option) => (
-          //@ts-ignore
-          <option value={option}>{option}</option>
-        )}
-      </For>
+      <For each={props.options}>{(option) => <option value={option}>{option}</option>}</For>
     </select>
   );
 }
 
-function getSelectedNode(selection) {
+function getSelectedNode(selection: RangeSelection) {
   const anchor = selection.anchor;
   const focus = selection.focus;
   const anchorNode = selection.anchor.getNode();
@@ -269,11 +508,32 @@ function getSelectedNode(selection) {
   }
 }
 
+function getBlockTypeIcon(blockType: string) {
+  switch (blockType) {
+    case "h1":
+      return <IconH1 />;
+    case "h2":
+      return <IconH2 />;
+    case "h3":
+      return <IconH3 />;
+    case "ul":
+      return <IconBulletList />;
+    case "ol":
+      return <IconNumberedList />;
+    case "quote":
+      return <IconQuote />;
+    case "code":
+      return <IconCode />;
+    default:
+      return <IconParagraph />;
+  }
+}
+
 function BlockOptionsDropdownList(props: {
   editor: LexicalEditor;
   blockType: string;
-  toolbarRef: HTMLDivElement;
-  setShowBlockOptionsDropDown: (val: boolean) => any;
+  toolbarRef: HTMLDivElement | undefined;
+  setShowBlockOptionsDropDown: (val: boolean) => void;
 }) {
   let dropDownRef!: HTMLDivElement;
 
@@ -281,7 +541,7 @@ function BlockOptionsDropdownList(props: {
     const toolbar = props.toolbarRef;
     const dropDown = dropDownRef;
 
-    if (toolbar !== null && dropDown !== null) {
+    if (toolbar && dropDown) {
       const { top, left } = toolbar.getBoundingClientRect();
       dropDown.style.top = `${top + 40}px`;
       dropDown.style.left = `${left}px`;
@@ -292,9 +552,9 @@ function BlockOptionsDropdownList(props: {
     const dropDown = dropDownRef;
     const toolbar = props.toolbarRef;
 
-    if (dropDown !== null && toolbar !== null) {
-      const handle = (event) => {
-        const target = event.target;
+    if (dropDown && toolbar) {
+      const handle = (event: MouseEvent) => {
+        const target = event.target as Node;
 
         if (!dropDown.contains(target) && !toolbar.contains(target)) {
           props.setShowBlockOptionsDropDown(false);
@@ -312,43 +572,20 @@ function BlockOptionsDropdownList(props: {
     if (props.blockType !== "paragraph") {
       props.editor.update(() => {
         const selection = $getSelection();
-
         if ($isRangeSelection(selection)) {
-          $wrapLeafNodesInElements(selection as RangeSelection, () =>
-            $createParagraphNode()
-          );
+          $setBlocksType(selection, () => $createParagraphNode());
         }
       });
     }
     props.setShowBlockOptionsDropDown(false);
   };
 
-  const formatLargeHeading = () => {
-    if (props.blockType !== "h1") {
+  const formatHeading = (headingSize: HeadingTagType) => {
+    if (props.blockType !== headingSize) {
       props.editor.update(() => {
         const selection = $getSelection();
-
         if ($isRangeSelection(selection)) {
-          $wrapLeafNodesInElements(
-            selection as RangeSelection,
-            () => $createHeadingNode("h1") as any
-          );
-        }
-      });
-    }
-    props.setShowBlockOptionsDropDown(false);
-  };
-
-  const formatSmallHeading = () => {
-    if (props.blockType !== "h2") {
-      props.editor.update(() => {
-        const selection = $getSelection();
-
-        if ($isRangeSelection(selection)) {
-          $wrapLeafNodesInElements(
-            selection as RangeSelection,
-            () => $createHeadingNode("h2") as any
-          );
+          $setBlocksType(selection, () => $createHeadingNode(headingSize));
         }
       });
     }
@@ -357,10 +594,7 @@ function BlockOptionsDropdownList(props: {
 
   const formatBulletList = () => {
     if (props.blockType !== "ul") {
-      props.editor.dispatchCommand(
-        INSERT_UNORDERED_LIST_COMMAND,
-        undefined
-      );
+      props.editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     } else {
       props.editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
     }
@@ -369,10 +603,7 @@ function BlockOptionsDropdownList(props: {
 
   const formatNumberedList = () => {
     if (props.blockType !== "ol") {
-      props.editor.dispatchCommand(
-        INSERT_ORDERED_LIST_COMMAND,
-        undefined
-      );
+      props.editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
     } else {
       props.editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
     }
@@ -383,12 +614,8 @@ function BlockOptionsDropdownList(props: {
     if (props.blockType !== "quote") {
       props.editor.update(() => {
         const selection = $getSelection();
-
         if ($isRangeSelection(selection)) {
-          $wrapLeafNodesInElements(
-            selection as RangeSelection,
-            () => $createQuoteNode() as unknown as ElementNode
-          );
+          $setBlocksType(selection, () => $createQuoteNode());
         }
       });
     }
@@ -399,11 +626,8 @@ function BlockOptionsDropdownList(props: {
     if (props.blockType !== "code") {
       props.editor.update(() => {
         const selection = $getSelection();
-
         if ($isRangeSelection(selection)) {
-          $wrapLeafNodesInElements(selection as RangeSelection, () =>
-            $createCodeNode()
-          );
+          $setBlocksType(selection, () => $createCodeNode());
         }
       });
     }
@@ -413,37 +637,58 @@ function BlockOptionsDropdownList(props: {
   return (
     <div class="dropdown" ref={dropDownRef}>
       <button class="item" onClick={formatParagraph}>
-        <span class="icon paragraph" />
+        <span class="icon">
+          <IconParagraph />
+        </span>
         <span class="text">Normal</span>
         {props.blockType === "paragraph" && <span class="active" />}
       </button>
-      <button class="item" onClick={formatLargeHeading}>
-        <span class="icon large-heading" />
-        <span class="text">Large Heading</span>
+      <button class="item" onClick={() => formatHeading("h1")}>
+        <span class="icon">
+          <IconH1 />
+        </span>
+        <span class="text">Heading 1</span>
         {props.blockType === "h1" && <span class="active" />}
       </button>
-      <button class="item" onClick={formatSmallHeading}>
-        <span class="icon small-heading" />
-        <span class="text">Small Heading</span>
+      <button class="item" onClick={() => formatHeading("h2")}>
+        <span class="icon">
+          <IconH2 />
+        </span>
+        <span class="text">Heading 2</span>
         {props.blockType === "h2" && <span class="active" />}
       </button>
+      <button class="item" onClick={() => formatHeading("h3")}>
+        <span class="icon">
+          <IconH3 />
+        </span>
+        <span class="text">Heading 3</span>
+        {props.blockType === "h3" && <span class="active" />}
+      </button>
       <button class="item" onClick={formatBulletList}>
-        <span class="icon bullet-list" />
+        <span class="icon">
+          <IconBulletList />
+        </span>
         <span class="text">Bullet List</span>
         {props.blockType === "ul" && <span class="active" />}
       </button>
       <button class="item" onClick={formatNumberedList}>
-        <span class="icon numbered-list" />
+        <span class="icon">
+          <IconNumberedList />
+        </span>
         <span class="text">Numbered List</span>
         {props.blockType === "ol" && <span class="active" />}
       </button>
       <button class="item" onClick={formatQuote}>
-        <span class="icon quote" />
+        <span class="icon">
+          <IconQuote />
+        </span>
         <span class="text">Quote</span>
         {props.blockType === "quote" && <span class="active" />}
       </button>
       <button class="item" onClick={formatCode}>
-        <span class="icon code" />
+        <span class="icon">
+          <IconCode />
+        </span>
         <span class="text">Code Block</span>
         {props.blockType === "code" && <span class="active" />}
       </button>
@@ -453,15 +698,13 @@ function BlockOptionsDropdownList(props: {
 
 export default function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
-  let [toolbarRef, setToolbarRef] = createSignal<HTMLDivElement | undefined>();
+  const [toolbarRef, setToolbarRef] = createSignal<HTMLDivElement | undefined>();
   const [canUndo, setCanUndo] = createSignal(false);
   const [canRedo, setCanRedo] = createSignal(false);
   const [blockType, setBlockType] = createSignal("paragraph");
-  const [selectedElementKey, setSelectedElementKey] = createSignal(null);
-  const [showBlockOptionsDropDown, setShowBlockOptionsDropDown] =
-    createSignal(false);
+  const [selectedElementKey, setSelectedElementKey] = createSignal<string | null>(null);
+  const [showBlockOptionsDropDown, setShowBlockOptionsDropDown] = createSignal(false);
   const [codeLanguage, setCodeLanguage] = createSignal("");
-  const [isRTL, setIsRTL] = createSignal(false);
   const [isLink, setIsLink] = createSignal(false);
   const [isBold, setIsBold] = createSignal(false);
   const [isItalic, setIsItalic] = createSignal(false);
@@ -472,8 +715,7 @@ export default function ToolbarPlugin() {
   const updateToolbar = () => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
-      //@ts-ignore
-      const anchorNode: LexicalNode = selection.anchor.getNode();
+      const anchorNode = selection.anchor.getNode();
       const element =
         anchorNode.getKey() === "root"
           ? anchorNode
@@ -484,30 +726,24 @@ export default function ToolbarPlugin() {
         setSelectedElementKey(elementKey);
         if ($isListNode(element)) {
           const parentList = $getNearestNodeOfType(anchorNode, ListNode);
-          //@ts-ignore
-          const type = parentList ? parentList.getTag() : element.getTag();
-          setBlockType(type);
+          const type = parentList ? parentList.getListType() : element.getListType();
+          setBlockType(type === "bullet" ? "ul" : "ol");
         } else {
           const type = $isHeadingNode(element)
-            ? //@ts-ignore
-            element.getTag()
+            ? element.getTag()
             : element.getType();
           setBlockType(type);
           if ($isCodeNode(element)) {
-            //@ts-ignore
             setCodeLanguage(element.getLanguage() || getDefaultCodeLanguage());
           }
         }
       }
       // Update text format
-      setIsBold((selection as RangeSelection).hasFormat("bold"));
-      setIsItalic((selection as RangeSelection).hasFormat("italic"));
-      setIsUnderline((selection as RangeSelection).hasFormat("underline"));
-      setIsStrikethrough(
-        (selection as RangeSelection).hasFormat("strikethrough")
-      );
-      setIsCode((selection as RangeSelection).hasFormat("code"));
-      setIsRTL($isParentElementRTL(selection as RangeSelection));
+      setIsBold(selection.hasFormat("bold"));
+      setIsItalic(selection.hasFormat("italic"));
+      setIsUnderline(selection.hasFormat("underline"));
+      setIsStrikethrough(selection.hasFormat("strikethrough"));
+      setIsCode(selection.hasFormat("code"));
 
       // Update links
       const node = getSelectedNode(selection);
@@ -522,20 +758,15 @@ export default function ToolbarPlugin() {
 
   onMount(() => {
     onCleanup(
-      editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          updateToolbar();
-        });
-      })
-    );
-  });
-
-  onMount(() => {
-    onCleanup(
       mergeRegister(
+        editor.registerUpdateListener(({ editorState }) => {
+          editorState.read(() => {
+            updateToolbar();
+          });
+        }),
         editor.registerCommand(
           SELECTION_CHANGE_COMMAND,
-          (_payload, newEditor) => {
+          () => {
             updateToolbar();
             return false;
           },
@@ -562,19 +793,21 @@ export default function ToolbarPlugin() {
   });
 
   const codeLanguges = createMemo(() => getCodeLanguages());
-  const onCodeLanguageSelect = (e) => {
+  const onCodeLanguageSelect = (e: Event) => {
+    const target = e.target as HTMLSelectElement;
     editor.update(() => {
-      if (selectedElementKey !== null) {
-        const node = $getNodeByKey(selectedElementKey());
+      const key = selectedElementKey();
+      if (key !== null) {
+        const node = $getNodeByKey(key);
         if ($isCodeNode(node)) {
-          (node as any).setLanguage(e.target.value);
+          node.setLanguage(target.value);
         }
       }
     });
   };
 
   const insertLink = () => {
-    if (!isLink) {
+    if (!isLink()) {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://");
     } else {
       editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
@@ -590,8 +823,9 @@ export default function ToolbarPlugin() {
         }}
         class="toolbar-item spaced"
         aria-label="Undo"
+        title="Undo"
       >
-        <i class="format undo" />
+        <IconUndo />
       </button>
       <button
         disabled={!canRedo()}
@@ -600,56 +834,51 @@ export default function ToolbarPlugin() {
         }}
         class="toolbar-item"
         aria-label="Redo"
+        title="Redo"
       >
-        <i class="format redo" />
+        <IconRedo />
       </button>
       <Divider />
-      {supportedBlockTypes.has(blockType()) && (
-        <>
-          <button
-            class="toolbar-item block-controls"
-            onClick={() =>
-              setShowBlockOptionsDropDown(!showBlockOptionsDropDown())
-            }
-            aria-label="Formatting Options"
-          >
-            <span class={"icon block-type " + blockType()} />
-            <span class="text">{blockTypeToBlockName[blockType()]}</span>
-            <i class="chevron-down" />
-          </button>
-          {showBlockOptionsDropDown() && (
-            <Portal>
-              <BlockOptionsDropdownList
-                editor={editor}
-                blockType={blockType()}
-                toolbarRef={toolbarRef()}
-                setShowBlockOptionsDropDown={setShowBlockOptionsDropDown}
-              />
-            </Portal>
-          )}
-          <Divider />
-        </>
-      )}
-      {blockType() === "code" ? (
-        <>
-          <Select
-            class="toolbar-item code-language"
-            onChange={onCodeLanguageSelect}
-            options={codeLanguges()}
-            value={codeLanguage()}
-          />
-          <i class="chevron-down inside" />
-          <Divider />
-        </>
-      ) : null}
+      <Show when={supportedBlockTypes.has(blockType())}>
+        <button
+          class="toolbar-item block-controls"
+          onClick={() => setShowBlockOptionsDropDown(!showBlockOptionsDropDown())}
+          aria-label="Formatting Options"
+        >
+          <span class="icon">{getBlockTypeIcon(blockType())}</span>
+          <span class="text">{blockTypeToBlockName[blockType()] || "Normal"}</span>
+          <IconChevronDown />
+        </button>
+        <Show when={showBlockOptionsDropDown()}>
+          <Portal>
+            <BlockOptionsDropdownList
+              editor={editor}
+              blockType={blockType()}
+              toolbarRef={toolbarRef()}
+              setShowBlockOptionsDropDown={setShowBlockOptionsDropDown}
+            />
+          </Portal>
+        </Show>
+        <Divider />
+      </Show>
+      <Show when={blockType() === "code"}>
+        <Select
+          class="toolbar-item code-language"
+          onChange={onCodeLanguageSelect}
+          options={codeLanguges()}
+          value={codeLanguage()}
+        />
+        <Divider />
+      </Show>
       <button
         onClick={() => {
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
         }}
         class={"toolbar-item spaced " + (isBold() ? "active" : "")}
         aria-label="Format Bold"
+        title="Bold"
       >
-        <i class="format bold" />
+        <IconBold />
       </button>
       <button
         onClick={() => {
@@ -657,8 +886,9 @@ export default function ToolbarPlugin() {
         }}
         class={"toolbar-item spaced " + (isItalic() ? "active" : "")}
         aria-label="Format Italics"
+        title="Italic"
       >
-        <i class="format italic" />
+        <IconItalic />
       </button>
       <button
         onClick={() => {
@@ -666,20 +896,19 @@ export default function ToolbarPlugin() {
         }}
         class={"toolbar-item spaced " + (isUnderline() ? "active" : "")}
         aria-label="Format Underline"
+        title="Underline"
       >
-        <i class="format underline" />
+        <IconUnderline />
       </button>
       <button
         onClick={() => {
-          editor.dispatchCommand(
-            FORMAT_TEXT_COMMAND,
-            "strikethrough"
-          );
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough");
         }}
         class={"toolbar-item spaced " + (isStrikethrough() ? "active" : "")}
         aria-label="Format Strikethrough"
+        title="Strikethrough"
       >
-        <i class="format strikethrough" />
+        <IconStrikethrough />
       </button>
       <button
         onClick={() => {
@@ -687,21 +916,23 @@ export default function ToolbarPlugin() {
         }}
         class={"toolbar-item spaced " + (isCode() ? "active" : "")}
         aria-label="Insert Code"
+        title="Code"
       >
-        <i class="format code" />
+        <IconCode />
       </button>
       <button
         onClick={insertLink}
         class={"toolbar-item spaced " + (isLink() ? "active" : "")}
         aria-label="Insert Link"
+        title="Link"
       >
-        <i class="format link" />
+        <IconLink />
       </button>
-      {isLink() && (
+      <Show when={isLink()}>
         <Portal>
           <FloatingLinkEditor editor={editor} />
         </Portal>
-      )}
+      </Show>
       <Divider />
       <button
         onClick={() => {
@@ -709,8 +940,9 @@ export default function ToolbarPlugin() {
         }}
         class="toolbar-item spaced"
         aria-label="Left Align"
+        title="Align Left"
       >
-        <i class="format left-align" />
+        <IconAlignLeft />
       </button>
       <button
         onClick={() => {
@@ -718,8 +950,9 @@ export default function ToolbarPlugin() {
         }}
         class="toolbar-item spaced"
         aria-label="Center Align"
+        title="Align Center"
       >
-        <i class="format center-align" />
+        <IconAlignCenter />
       </button>
       <button
         onClick={() => {
@@ -727,17 +960,60 @@ export default function ToolbarPlugin() {
         }}
         class="toolbar-item spaced"
         aria-label="Right Align"
+        title="Align Right"
       >
-        <i class="format right-align" />
+        <IconAlignRight />
       </button>
       <button
         onClick={() => {
           editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify");
         }}
-        class="toolbar-item"
+        class="toolbar-item spaced"
         aria-label="Justify Align"
+        title="Justify"
       >
-        <i class="format justify-align" />
+        <IconAlignJustify />
+      </button>
+      <Divider />
+      <button
+        onClick={() => {
+          editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
+        }}
+        class="toolbar-item spaced"
+        aria-label="Insert Horizontal Rule"
+        title="Horizontal Rule"
+      >
+        <IconHorizontalRule />
+      </button>
+      <button
+        onClick={() => {
+          const src = prompt("Enter image URL:");
+          if (src) {
+            editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+              src,
+              altText: "Image",
+            });
+          }
+        }}
+        class="toolbar-item spaced"
+        aria-label="Insert Image"
+        title="Insert Image"
+      >
+        <IconImage />
+      </button>
+      <button
+        onClick={() => {
+          editor.dispatchCommand(INSERT_TABLE_COMMAND, {
+            columns: "3",
+            rows: "3",
+            includeHeaders: true,
+          });
+        }}
+        class="toolbar-item"
+        aria-label="Insert Table"
+        title="Insert Table"
+      >
+        <IconTable />
       </button>
     </div>
   );

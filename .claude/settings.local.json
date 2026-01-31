@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:playground.lexical.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(dir:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm build:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(findstr:*)",
+      "Bash(ls:*)",
+      "Bash(npm pack:*)"
+    ]
+  }
+}

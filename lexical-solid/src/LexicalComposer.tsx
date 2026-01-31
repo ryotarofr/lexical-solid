@@ -100,7 +100,7 @@ function initializeEditor(
         }
       }
     }, HISTORY_MERGE_OPTIONS);
-  } else if (initialEditorState !== null) {
+  } else {
     switch (typeof initialEditorState) {
       case "string": {
         const parsedEditorState = editor.parseEditorState(initialEditorState);

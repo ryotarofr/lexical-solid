@@ -1,12 +1,12 @@
-import type { Props as ElementProps } from "./shared/LexicalContentEditableElement";
+import type { ContentEditableElementProps as ElementProps } from "./shared/LexicalContentEditableElement";
 import type { LexicalEditor } from "lexical";
 import { useLexicalComposerContext } from "./LexicalComposerContext";
 import {
-  createEffect,
   createMemo,
   createSignal,
   JSX,
   onCleanup,
+  onMount,
   Show,
   splitProps,
 } from "solid-js";
@@ -16,13 +16,13 @@ import { useCanShowPlaceholder } from "./shared/useCanShowPlaceholder";
 export type ContentEditableProps = Omit<ElementProps, "editor"> &
   (
     | {
-        "aria-placeholder"?: void;
-        placeholder?: null;
-      }
+      "aria-placeholder"?: undefined;
+      placeholder?: null;
+    }
     | {
-        "aria-placeholder": string;
-        placeholder: (isEditable: boolean) => null | JSX.Element;
-      }
+      "aria-placeholder": string;
+      placeholder: (isEditable: boolean) => null | JSX.Element;
+    }
   );
 
 /**
@@ -55,8 +55,7 @@ function Placeholder(props: {
   const showPlaceholder = useCanShowPlaceholder(props.editor);
 
   const [isEditable, setEditable] = createSignal(props.editor.isEditable());
-  createEffect(() => {
-    setEditable(props.editor.isEditable());
+  onMount(() => {
     onCleanup(
       props.editor.registerEditableListener((currentIsEditable) => {
         setEditable(currentIsEditable);
@@ -65,9 +64,6 @@ function Placeholder(props: {
   });
   const placeholder = createMemo(() => props.content(isEditable()));
 
-  if (placeholder === null) {
-    return null;
-  }
   return (
     <Show when={showPlaceholder() && placeholder()}>
       <div aria-hidden={true}>{placeholder()}</div>

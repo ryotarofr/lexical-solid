@@ -12,7 +12,7 @@ import {
   SerializedLexicalNode,
 } from "lexical";
 
-import { createEffect, JSX, onCleanup } from "solid-js";
+import { createEffect, JSX, onCleanup, onMount } from "solid-js";
 
 import { createCommand, DecoratorNode } from "lexical";
 import { useLexicalComposerContext } from "./LexicalComposerContext";
@@ -34,7 +34,7 @@ function HorizontalRuleComponent(props: { nodeKey: NodeKey }) {
     props.nodeKey
   );
 
-  createEffect(() => {
+  onMount(() => {
     onCleanup(
       mergeRegister(
         editor.registerCommand(
@@ -46,7 +46,7 @@ function HorizontalRuleComponent(props: { nodeKey: NodeKey }) {
               if (!event.shiftKey) {
                 clearSelection();
               }
-              setSelected(!isSelected);
+              setSelected(!isSelected());
               return true;
             }
 
@@ -73,7 +73,7 @@ function HorizontalRuleComponent(props: { nodeKey: NodeKey }) {
   return null;
 }
 
-export class HorizontalRuleNode extends DecoratorNode<JSX.Element> {
+export class HorizontalRuleNode extends DecoratorNode<() => JSX.Element> {
   static getType(): string {
     return "horizontalrule";
   }
@@ -119,8 +119,9 @@ export class HorizontalRuleNode extends DecoratorNode<JSX.Element> {
     return false;
   }
 
-  decorate(): JSX.Element {
-    return <HorizontalRuleComponent nodeKey={this.__key} />;
+  decorate(): () => JSX.Element {
+    const nodeKey = this.__key;
+    return () => <HorizontalRuleComponent nodeKey={nodeKey} />;
   }
 }
 
@@ -134,6 +135,6 @@ export function $createHorizontalRuleNode(): HorizontalRuleNode {
 
 export function $isHorizontalRuleNode(
   node: LexicalNode | undefined | null
-): boolean {
+): node is HorizontalRuleNode {
   return node instanceof HorizontalRuleNode;
 }
