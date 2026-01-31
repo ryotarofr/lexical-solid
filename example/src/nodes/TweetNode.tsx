@@ -22,11 +22,16 @@ export type SerializedTweetNode = Spread<
   SerializedLexicalNode
 >;
 
+// Validate that the tweet ID is a numeric string
+function isValidTweetID(id: string): boolean {
+  return /^\d+$/.test(id);
+}
+
 function $convertTweetElement(
   domNode: HTMLElement
 ): DOMConversionOutput | null {
   const id = domNode.getAttribute("data-lexical-tweet-id");
-  if (id) {
+  if (id && isValidTweetID(id)) {
     const node = $createTweetNode(id);
     return { node };
   }
@@ -85,6 +90,9 @@ export class TweetNode extends DecoratorNode<() => JSX.Element> {
 
   constructor(id: string, key?: NodeKey) {
     super(key);
+    if (!isValidTweetID(id)) {
+      throw new Error(`Invalid tweet ID: ${id}. Tweet ID must be a numeric string.`);
+    }
     this.__id = id;
   }
 
@@ -186,6 +194,9 @@ function TweetComponent(props: {
 }
 
 export function $createTweetNode(tweetID: string): TweetNode {
+  if (!isValidTweetID(tweetID)) {
+    throw new Error(`Invalid tweet ID: ${tweetID}. Tweet ID must be a numeric string.`);
+  }
   return $applyNodeReplacement(new TweetNode(tweetID));
 }
 
