@@ -519,7 +519,7 @@ export default function ComponentPickerPlugin(): JSX.Element {
     if (videoId) {
       editor.dispatchCommand(INSERT_YOUTUBE_COMMAND, videoId);
     } else {
-      console.error("Failed to extract YouTube video ID from:", url);
+      console.error("Failed to extract YouTube video ID");
     }
   };
 
@@ -528,7 +528,7 @@ export default function ComponentPickerPlugin(): JSX.Element {
     if (tweetId) {
       editor.dispatchCommand(INSERT_TWEET_COMMAND, tweetId);
     } else {
-      console.error("Failed to extract Tweet ID from:", url);
+      console.error("Failed to extract Tweet ID");
     }
   };
 
@@ -537,7 +537,7 @@ export default function ComponentPickerPlugin(): JSX.Element {
     if (documentId) {
       editor.dispatchCommand(INSERT_FIGMA_COMMAND, documentId);
     } else {
-      console.error("Failed to extract Figma document ID from:", url);
+      console.error("Failed to extract Figma document ID");
     }
   };
 

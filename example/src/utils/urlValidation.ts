@@ -66,8 +66,8 @@ export function validateImageURL(url: string): ValidationResult {
  */
 export function validateYouTubeURL(url: string): ValidationResult {
   const patterns = [
-    /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /^(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([^&\n?#]+)/,
+    /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)$/,
+    /^(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([^&\n?#]+)$/,
   ];
 
   for (const pattern of patterns) {
@@ -76,8 +76,8 @@ export function validateYouTubeURL(url: string): ValidationResult {
     }
   }
 
-  // Check if it's already a video ID
-  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+  // Check if it's already a video ID (11 characters, alphanumeric and hyphens)
+  if (/^[a-zA-Z0-9-]{11}$/.test(url)) {
     return { isValid: true };
   }
 
