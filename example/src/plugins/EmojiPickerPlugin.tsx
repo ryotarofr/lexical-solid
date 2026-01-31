@@ -103,7 +103,7 @@ function EmojiPickerMenuItem(props: {
 
   return (
     <div
-      ref={itemRef}
+      ref={(el) => (itemRef = el)}
       class={`emoji-picker-item ${props.isSelected ? "selected" : ""}`}
       onClick={props.onClick}
       onMouseEnter={props.onMouseEnter}
