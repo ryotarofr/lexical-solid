@@ -55,8 +55,8 @@ function MentionMenuItem(props: {
   let itemRef: HTMLDivElement | undefined;
 
   createEffect(() => {
-    if (props.isSelected && itemRef) {
-      itemRef.scrollIntoView({ block: "nearest" });
+    if (props.isSelected) {
+      itemRef?.scrollIntoView({ block: "nearest" });
     }
   });
 
