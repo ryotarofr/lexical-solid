@@ -128,7 +128,7 @@ export default function MentionsPlugin(): JSX.Element {
                 {(option, index) => (
                   <MentionMenuItem
                     option={option}
-                    isSelected={(typeof selectedIndex === 'function' ? selectedIndex() : selectedIndex) === index()}
+                    isSelected={selectedIndex() === index()}
                     onClick={() => {
                       setHighlightedIndex(index());
                       selectOptionAndCleanUp(option);
