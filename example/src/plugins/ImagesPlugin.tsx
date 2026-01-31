@@ -22,11 +22,6 @@ import {
 const TRANSPARENT_IMAGE =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-const img = typeof window !== "undefined" ? document.createElement("img") : null;
-if (img) {
-  img.src = TRANSPARENT_IMAGE;
-}
-
 function canDropImage(event: DragEvent): boolean {
   const target = event.target;
   return !!(
@@ -90,6 +85,12 @@ export default function ImagesPlugin(): null {
       throw new Error("ImagesPlugin: ImageNode not registered on editor");
     }
 
+    // Create transparent image element for this plugin instance
+    const img = typeof window !== "undefined" ? document.createElement("img") : null;
+    if (img) {
+      img.src = TRANSPARENT_IMAGE;
+    }
+
     onCleanup(
       mergeRegister(
         editor.registerCommand<ImagePayload>(
@@ -104,7 +105,7 @@ export default function ImagesPlugin(): null {
         editor.registerCommand<DragEvent>(
           DRAGSTART_COMMAND,
           (event) => {
-            return onDragStart(event);
+            return onDragStart(event, img);
           },
           COMMAND_PRIORITY_HIGH
         ),
@@ -129,7 +130,7 @@ export default function ImagesPlugin(): null {
   return null;
 }
 
-function onDragStart(event: DragEvent): boolean {
+function onDragStart(event: DragEvent, img: HTMLImageElement | null): boolean {
   const node = getImageFromSelection();
   if (!node) {
     return false;
