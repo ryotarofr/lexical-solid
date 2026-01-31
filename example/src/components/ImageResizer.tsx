@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup } from "solid-js";
 
 interface ImageResizerProps {
   imageRef: HTMLImageElement;
