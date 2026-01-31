@@ -120,17 +120,24 @@ export class FigmaNode extends DecoratorNode<() => JSX.Element> {
   }
 }
 
+function isValidFigmaDocumentID(documentID: string): boolean {
+  return /^[a-zA-Z0-9]+$/.test(documentID);
+}
+
 function FigmaComponent(props: {
   documentID: string;
   nodeKey: NodeKey;
 }): JSX.Element {
+  const safeDocumentID = isValidFigmaDocumentID(props.documentID)
+    ? props.documentID
+    : "";
   return (
     <div class="figma-embed">
       <iframe
         width="100%"
         height="450"
         src={`https://www.figma.com/embed?embed_host=lexical&url=${encodeURIComponent(
-          `https://www.figma.com/file/${props.documentID}`
+          `https://www.figma.com/file/${safeDocumentID}`
         )}`}
         allowfullscreen
       />
