@@ -15,6 +15,7 @@ import {
   createEffect,
   createSignal,
   onCleanup,
+  onMount,
   Show,
   JSX,
 } from "solid-js";
@@ -187,18 +188,22 @@ function TextFormatFloatingToolbar(props: {
     setFloatingElemPosition(rangeRect, popupRef, props.anchorElem);
   };
 
-  createEffect(() => {
+  onMount(() => {
+    // Initial position update
     props.editor.getEditorState().read(() => {
       updatePosition();
     });
 
-    onCleanup(
-      props.editor.registerUpdateListener(({ editorState }) => {
-        editorState.read(() => {
-          updatePosition();
-        });
-      })
-    );
+    // Register listener for updates
+    const unregister = props.editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        updatePosition();
+      });
+    });
+
+    onCleanup(() => {
+      unregister();
+    });
   });
 
   return (
