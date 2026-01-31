@@ -85,8 +85,7 @@ export class TweetNode extends DecoratorNode<() => JSX.Element> {
   }
 
   static importJSON(serializedNode: SerializedTweetNode): TweetNode {
-    const node = $createTweetNode(serializedNode.id);
-    return node;
+    return $createTweetNode(serializedNode.id);
   }
 
   constructor(id: string, key?: NodeKey) {
