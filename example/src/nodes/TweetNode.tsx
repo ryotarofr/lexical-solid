@@ -170,10 +170,10 @@ function TweetComponent(props: {
   onMount(async () => {
     await loadTwitterScript();
 
-    if (containerRef && (window as any).twttr?.widgets) {
+    if ((window as any).twttr?.widgets) {
       (window as any).twttr.widgets.createTweet(
         props.tweetID,
-        containerRef,
+        containerRef!,
         { theme: "light" }
       ).then(() => {
         setIsLoading(false);
