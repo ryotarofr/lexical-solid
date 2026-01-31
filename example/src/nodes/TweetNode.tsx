@@ -13,7 +13,7 @@ import {
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-import { createEffect, createSignal, JSX, onMount } from "solid-js";
+import { createSignal, JSX, onMount } from "solid-js";
 
 export type SerializedTweetNode = Spread<
   {
