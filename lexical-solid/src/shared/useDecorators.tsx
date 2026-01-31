@@ -9,10 +9,8 @@ import {
   createComponent,
   Suspense,
   onCleanup,
-  useContext,
 } from "solid-js";
 import { Dynamic, Portal } from "solid-js/web";
-import { LexicalComposerContext } from "../LexicalComposerContext";
 
 type ErrorBoundaryProps = {
   children: JSX.Element;
@@ -24,7 +22,6 @@ export function useDecorators(
   editor: LexicalEditor,
   ErrorBoundary: ErrorBoundaryType
 ): Accessor<JSX.Element[]> {
-  const composerContext = useContext(LexicalComposerContext);
   const [decorators, setDecorators] = createSignal<
     Record<NodeKey, () => JSX.Element>
   >(editor.getDecorators<() => JSX.Element>());
@@ -51,15 +48,13 @@ export function useDecorators(
     for (let i = 0; i < decoratorKeys.length; i++) {
       const nodeKey = decoratorKeys[i];
       const decorator = (
-        <LexicalComposerContext.Provider value={composerContext}>
-          <ErrorBoundary
-            onError={(error, reset) => editor._onError(error) as undefined}
-          >
-            <Suspense fallback={null}>
-              <Dynamic component={decorators()[nodeKey]} />
-            </Suspense>
-          </ErrorBoundary>
-        </LexicalComposerContext.Provider>
+        <ErrorBoundary
+          onError={(error, reset) => editor._onError(error) as undefined}
+        >
+          <Suspense fallback={null}>
+            <Dynamic component={decorators()[nodeKey]} />
+          </Suspense>
+        </ErrorBoundary>
       );
       const element = editor.getElementByKey(nodeKey);
 
