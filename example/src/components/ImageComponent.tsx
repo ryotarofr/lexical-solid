@@ -14,7 +14,7 @@ import {
   NodeKey,
 } from "lexical";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
-import { $isImageNode, ImageNode } from "../nodes/ImageNode";
+import { $isImageNode } from "../nodes/ImageNode";
 import ImageResizer from "./ImageResizer";
 
 export interface ImageComponentProps {
