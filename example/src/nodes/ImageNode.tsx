@@ -21,7 +21,7 @@ import {
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-import { createEffect, createSignal, JSX, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, JSX, onCleanup, Show } from "solid-js";
 import { useLexicalComposerContext } from "lexical-solid/LexicalComposerContext";
 import { useLexicalNodeSelection } from "lexical-solid/useLexicalNodeSelection";
 import { mergeRegister } from "@lexical/utils";
@@ -307,15 +307,15 @@ function ImageComponent(props: ImageComponentProps) {
     setIsResizing(true);
   };
 
-  const getDraggable = () => {
+  const draggable = createMemo(() => {
     return editor.getEditorState().read(() => {
       return isSelected() && $isNodeSelection($getSelection());
     });
-  };
+  });
 
   return (
-    <div draggable={getDraggable()}>
-      <div class={isSelected() ? "image-wrapper focused" : "image-wrapper"}>
+    <div draggable={draggable()}>
+      <div classList={{ "image-wrapper": true, "focused": isSelected() }}>
         <img
           ref={imageRef}
           src={props.src}
