@@ -122,7 +122,7 @@ function getMenuOptions(
 }
 
 export default function AutoEmbedPlugin(): JSX.Element | null {
-  const [editor] = useLexicalComposerContext();
+  useLexicalComposerContext();
 
   const openEmbedModal = (embedConfig: EmbedConfig) => {
     // For this implementation, we auto-embed when the URL is detected
