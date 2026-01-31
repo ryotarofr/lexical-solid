@@ -29,8 +29,16 @@ import { INSERT_FIGMA_COMMAND } from "../nodes/FigmaNode";
 import { INSERT_COLLAPSIBLE_COMMAND } from "../nodes/CollapsibleNodes";
 import { INSERT_LAYOUT_COMMAND } from "../nodes/LayoutNodes";
 import { INSERT_PAGE_BREAK_COMMAND } from "../nodes/PageBreakNode";
-import { createMemo, createSignal, createEffect, For, JSX } from "solid-js";
+import { createMemo, createSignal, createEffect, For, JSX, Show } from "solid-js";
 import { Portal } from "solid-js/web";
+import { URLInputModal } from "../components/URLInputModal";
+import { 
+  sanitizeURL,
+  validateImageURL, 
+  validateYouTubeURL, 
+  validateTweetURL, 
+  validateFigmaURL 
+} from "../utils/urlValidation";
 
 // Helper function to extract YouTube video ID from various URL formats
 function extractYouTubeVideoId(url: string): string | null {
@@ -323,7 +331,13 @@ function IconPageBreak() {
   );
 }
 
-function getBaseOptions(editor: LexicalEditor): ComponentPickerOption[] {
+function getBaseOptions(
+  editor: LexicalEditor,
+  openImageModal: () => void,
+  openYouTubeModal: () => void,
+  openTweetModal: () => void,
+  openFigmaModal: () => void
+): ComponentPickerOption[] {
   return [
     new ComponentPickerOption("Paragraph", {
       icon: <IconParagraph />,
@@ -425,15 +439,7 @@ function getBaseOptions(editor: LexicalEditor): ComponentPickerOption[] {
     new ComponentPickerOption("Image", {
       icon: <IconImage />,
       keywords: ["image", "photo", "picture", "img"],
-      onSelect: () => {
-        const src = prompt("Enter image URL:");
-        if (src) {
-          editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-            src,
-            altText: "Image",
-          });
-        }
-      },
+      onSelect: openImageModal,
     }),
     new ComponentPickerOption("Table", {
       icon: <IconTable />,
@@ -448,48 +454,17 @@ function getBaseOptions(editor: LexicalEditor): ComponentPickerOption[] {
     new ComponentPickerOption("YouTube", {
       icon: <IconYouTube />,
       keywords: ["youtube", "video", "embed"],
-      onSelect: () => {
-        const url = prompt("Enter YouTube URL:");
-        if (url) {
-          // Extract video ID from various YouTube URL formats
-          const videoId = extractYouTubeVideoId(url);
-          if (videoId) {
-            editor.dispatchCommand(INSERT_YOUTUBE_COMMAND, videoId);
-          } else {
-            alert("Invalid YouTube URL");
-          }
-        }
-      },
+      onSelect: openYouTubeModal,
     }),
     new ComponentPickerOption("Tweet", {
       icon: <IconTwitter />,
       keywords: ["twitter", "tweet", "x", "embed"],
-      onSelect: () => {
-        const url = prompt("Enter Tweet URL:");
-        if (url) {
-          const tweetId = extractTweetId(url);
-          if (tweetId) {
-            editor.dispatchCommand(INSERT_TWEET_COMMAND, tweetId);
-          } else {
-            alert("Invalid Tweet URL");
-          }
-        }
-      },
+      onSelect: openTweetModal,
     }),
     new ComponentPickerOption("Figma", {
       icon: <IconFigma />,
       keywords: ["figma", "design", "embed"],
-      onSelect: () => {
-        const url = prompt("Enter Figma URL:");
-        if (url) {
-          const documentId = extractFigmaDocumentId(url);
-          if (documentId) {
-            editor.dispatchCommand(INSERT_FIGMA_COMMAND, documentId);
-          } else {
-            alert("Invalid Figma URL");
-          }
-        }
-      },
+      onSelect: openFigmaModal,
     }),
     new ComponentPickerOption("Collapsible", {
       icon: <IconCollapsible />,
@@ -521,13 +496,53 @@ function getBaseOptions(editor: LexicalEditor): ComponentPickerOption[] {
 export default function ComponentPickerPlugin(): JSX.Element {
   const [editor] = useLexicalComposerContext();
   const [queryString, setQueryString] = createSignal<string | null>(null);
+  
+  // Modal state management
+  type ModalType = "image" | "youtube" | "tweet" | "figma" | null;
+  const [activeModal, setActiveModal] = createSignal<ModalType>(null);
 
   const checkForTriggerMatch = useBasicTypeaheadTriggerMatch("/", {
     minLength: 0,
   });
 
+  // Modal handlers
+  const handleImageSubmit = (url: string) => {
+    const sanitized = sanitizeURL(url);
+    editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+      src: sanitized,
+      altText: "Image",
+    });
+  };
+
+  const handleYouTubeSubmit = (url: string) => {
+    const videoId = extractYouTubeVideoId(url);
+    if (videoId) {
+      editor.dispatchCommand(INSERT_YOUTUBE_COMMAND, videoId);
+    }
+  };
+
+  const handleTweetSubmit = (url: string) => {
+    const tweetId = extractTweetId(url);
+    if (tweetId) {
+      editor.dispatchCommand(INSERT_TWEET_COMMAND, tweetId);
+    }
+  };
+
+  const handleFigmaSubmit = (url: string) => {
+    const documentId = extractFigmaDocumentId(url);
+    if (documentId) {
+      editor.dispatchCommand(INSERT_FIGMA_COMMAND, documentId);
+    }
+  };
+
   const options = createMemo(() => {
-    const baseOptions = getBaseOptions(editor);
+    const baseOptions = getBaseOptions(
+      editor,
+      () => setActiveModal("image"),
+      () => setActiveModal("youtube"),
+      () => setActiveModal("tweet"),
+      () => setActiveModal("figma")
+    );
     const query = queryString();
 
     if (!query) {
@@ -557,37 +572,80 @@ export default function ComponentPickerPlugin(): JSX.Element {
   };
 
   return (
-    <LexicalTypeaheadMenuPlugin<ComponentPickerOption>
-      onQueryChange={setQueryString}
-      onSelectOption={onSelectOption}
-      triggerFn={checkForTriggerMatch}
-      options={options()}
-      menuRenderFn={(
-        anchorElementRef,
-        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
-      ) =>
-        anchorElementRef.current && options().length ? (
-          <Portal mount={anchorElementRef.current}>
-            <div class="component-picker-menu">
-              <For each={options()}>
-                {(option, index) => (
-                  <ComponentPickerMenuItem
-                    option={option}
-                    isSelected={(typeof selectedIndex === 'function' ? selectedIndex() : selectedIndex) === index()}
-                    onClick={() => {
-                      setHighlightedIndex(index());
-                      selectOptionAndCleanUp(option);
-                    }}
-                    onMouseEnter={() => {
-                      setHighlightedIndex(index());
-                    }}
-                  />
-                )}
-              </For>
-            </div>
-          </Portal>
-        ) : null
-      }
-    />
+    <>
+      <LexicalTypeaheadMenuPlugin<ComponentPickerOption>
+        onQueryChange={setQueryString}
+        onSelectOption={onSelectOption}
+        triggerFn={checkForTriggerMatch}
+        options={options()}
+        menuRenderFn={(
+          anchorElementRef,
+          { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
+        ) =>
+          anchorElementRef.current && options().length ? (
+            <Portal mount={anchorElementRef.current}>
+              <div class="component-picker-menu">
+                <For each={options()}>
+                  {(option, index) => (
+                    <ComponentPickerMenuItem
+                      option={option}
+                      isSelected={(typeof selectedIndex === 'function' ? selectedIndex() : selectedIndex) === index()}
+                      onClick={() => {
+                        setHighlightedIndex(index());
+                        selectOptionAndCleanUp(option);
+                      }}
+                      onMouseEnter={() => {
+                        setHighlightedIndex(index());
+                      }}
+                    />
+                  )}
+                </For>
+              </div>
+            </Portal>
+          ) : null
+        }
+      />
+      
+      {/* URL Input Modals */}
+      <Show when={activeModal() === "image"}>
+        <URLInputModal
+          title="Insert Image"
+          placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+          onSubmit={handleImageSubmit}
+          onClose={() => setActiveModal(null)}
+          validate={validateImageURL}
+        />
+      </Show>
+      
+      <Show when={activeModal() === "youtube"}>
+        <URLInputModal
+          title="Insert YouTube Video"
+          placeholder="Enter YouTube URL or video ID"
+          onSubmit={handleYouTubeSubmit}
+          onClose={() => setActiveModal(null)}
+          validate={validateYouTubeURL}
+        />
+      </Show>
+      
+      <Show when={activeModal() === "tweet"}>
+        <URLInputModal
+          title="Insert Tweet"
+          placeholder="Enter Tweet URL (twitter.com or x.com) or tweet ID"
+          onSubmit={handleTweetSubmit}
+          onClose={() => setActiveModal(null)}
+          validate={validateTweetURL}
+        />
+      </Show>
+      
+      <Show when={activeModal() === "figma"}>
+        <URLInputModal
+          title="Insert Figma Embed"
+          placeholder="Enter Figma file or design URL"
+          onSubmit={handleFigmaSubmit}
+          onClose={() => setActiveModal(null)}
+          validate={validateFigmaURL}
+        />
+      </Show>
+    </>
   );
 }

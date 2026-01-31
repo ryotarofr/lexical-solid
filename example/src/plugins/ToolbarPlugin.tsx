@@ -40,6 +40,8 @@ import {
 } from "@lexical/code";
 import { INSERT_TABLE_COMMAND } from "@lexical/table";
 import { Portal } from "solid-js/web";
+import { URLInputModal } from "../components/URLInputModal";
+import { sanitizeURL, validateImageURL } from "../utils/urlValidation";
 import {
   createEffect,
   createMemo,
@@ -711,6 +713,15 @@ export default function ToolbarPlugin() {
   const [isUnderline, setIsUnderline] = createSignal(false);
   const [isStrikethrough, setIsStrikethrough] = createSignal(false);
   const [isCode, setIsCode] = createSignal(false);
+  const [showImageModal, setShowImageModal] = createSignal(false);
+
+  const handleImageSubmit = (url: string) => {
+    const sanitized = sanitizeURL(url);
+    editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+      src: sanitized,
+      altText: "Image",
+    });
+  };
 
   const updateToolbar = () => {
     const selection = $getSelection();
@@ -815,6 +826,7 @@ export default function ToolbarPlugin() {
   };
 
   return (
+    <>
     <div class="toolbar" ref={setToolbarRef}>
       <button
         disabled={!canUndo()}
@@ -986,15 +998,7 @@ export default function ToolbarPlugin() {
         <IconHorizontalRule />
       </button>
       <button
-        onClick={() => {
-          const src = prompt("Enter image URL:");
-          if (src) {
-            editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-              src,
-              altText: "Image",
-            });
-          }
-        }}
+        onClick={() => setShowImageModal(true)}
         class="toolbar-item spaced"
         aria-label="Insert Image"
         title="Insert Image"
@@ -1016,5 +1020,17 @@ export default function ToolbarPlugin() {
         <IconTable />
       </button>
     </div>
+    
+    {/* Image URL Input Modal */}
+    <Show when={showImageModal()}>
+      <URLInputModal
+        title="Insert Image"
+        placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+        onSubmit={handleImageSubmit}
+        onClose={() => setShowImageModal(false)}
+        validate={validateImageURL}
+      />
+    </Show>
+  </>
   );
 }
