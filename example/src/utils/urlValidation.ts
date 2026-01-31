@@ -76,8 +76,8 @@ export function validateYouTubeURL(url: string): ValidationResult {
     }
   }
 
-  // Check if it's already a video ID (11 characters, alphanumeric and hyphens)
-  if (/^[a-zA-Z0-9-]{11}$/.test(url)) {
+  // Check if it's already a video ID (11 characters, alphanumeric, underscores, and hyphens)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
     return { isValid: true };
   }
 
