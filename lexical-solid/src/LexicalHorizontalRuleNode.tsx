@@ -12,7 +12,7 @@ import {
   SerializedLexicalNode,
 } from "lexical";
 
-import { createEffect, JSX, onCleanup, onMount } from "solid-js";
+import { createEffect, JSX, onCleanup } from "solid-js";
 
 import { createCommand, DecoratorNode } from "lexical";
 import { useLexicalComposerContext } from "./LexicalComposerContext";
@@ -34,7 +34,7 @@ function HorizontalRuleComponent(props: { nodeKey: NodeKey }) {
     props.nodeKey
   );
 
-  onMount(() => {
+  createEffect(() => {
     onCleanup(
       mergeRegister(
         editor.registerCommand(
