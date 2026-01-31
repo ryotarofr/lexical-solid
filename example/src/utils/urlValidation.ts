@@ -66,8 +66,8 @@ export function validateImageURL(url: string): ValidationResult {
  */
 export function validateYouTubeURL(url: string): ValidationResult {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/shorts\/([^&\n?#]+)/,
+    /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /^(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([^&\n?#]+)/,
   ];
 
   for (const pattern of patterns) {
@@ -91,7 +91,7 @@ export function validateYouTubeURL(url: string): ValidationResult {
  * Validate Tweet URL
  */
 export function validateTweetURL(url: string): ValidationResult {
-  const pattern = /^(?:https?:\/\/)?(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/;
+  const pattern = /^(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)(?:[/?#].*)?$/;
   
   if (pattern.test(url)) {
     return { isValid: true };
@@ -112,7 +112,7 @@ export function validateTweetURL(url: string): ValidationResult {
  * Validate Figma URL
  */
 export function validateFigmaURL(url: string): ValidationResult {
-  const pattern = /^(?:https?:\/\/)?(?:www\.)?figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/;
+  const pattern = /^(?:https?:\/\/)?(?:www\.)?figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)(?:[/?#].*)?$/;
   
   if (pattern.test(url)) {
     return { isValid: true };
