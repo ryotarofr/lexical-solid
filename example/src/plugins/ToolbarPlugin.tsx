@@ -478,6 +478,150 @@ function FloatingLinkEditor(props: { editor: LexicalEditor }) {
   );
 }
 
+function ImageUrlModal(props: {
+  isOpen: boolean;
+  onClose: () => void;
+  onInsert: (url: string, altText: string) => void;
+}) {
+  let inputRef!: HTMLInputElement;
+  let altTextRef!: HTMLInputElement;
+  const [imageUrl, setImageUrl] = createSignal("");
+  const [altText, setAltText] = createSignal("");
+  const [error, setError] = createSignal("");
+
+  // Validate and sanitize URL
+  const isValidImageUrl = (url: string): boolean => {
+    if (!url || url.trim() === "") {
+      return false;
+    }
+    
+    // Prevent javascript: protocol and other dangerous protocols
+    const lowerUrl = url.toLowerCase().trim();
+    if (lowerUrl.startsWith("javascript:") || 
+        lowerUrl.startsWith("data:text/html") ||
+        lowerUrl.startsWith("vbscript:")) {
+      return false;
+    }
+
+    // Check for valid URL pattern
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      // If absolute URL parsing fails, check for relative URLs
+      return url.startsWith("/") || url.startsWith("./") || url.startsWith("../");
+    }
+  };
+
+  const handleInsert = () => {
+    const url = imageUrl().trim();
+    
+    if (!url) {
+      setError("Please enter an image URL");
+      return;
+    }
+
+    if (!isValidImageUrl(url)) {
+      setError("Please enter a valid URL");
+      return;
+    }
+
+    props.onInsert(url, altText().trim() || "Image");
+    handleClose();
+  };
+
+  const handleClose = () => {
+    setImageUrl("");
+    setAltText("");
+    setError("");
+    props.onClose();
+  };
+
+  createEffect(() => {
+    if (props.isOpen && inputRef) {
+      inputRef.focus();
+    }
+  });
+
+  return (
+    <Show when={props.isOpen}>
+      <Portal>
+        <div class="image-modal-overlay" onClick={handleClose}>
+          <div class="image-modal" onClick={(e) => e.stopPropagation()}>
+            <div class="image-modal-header">
+              <h3>Insert Image</h3>
+              <button
+                class="image-modal-close"
+                onClick={handleClose}
+                aria-label="Close"
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div class="image-modal-body">
+              <div class="image-modal-field">
+                <label for="image-url-input">Image URL *</label>
+                <input
+                  id="image-url-input"
+                  ref={inputRef}
+                  type="text"
+                  placeholder="https://example.com/image.jpg"
+                  value={imageUrl()}
+                  onInput={(e) => {
+                    setImageUrl(e.currentTarget.value);
+                    setError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleInsert();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      handleClose();
+                    }
+                  }}
+                />
+              </div>
+              <div class="image-modal-field">
+                <label for="image-alt-input">Alt Text</label>
+                <input
+                  id="image-alt-input"
+                  ref={altTextRef}
+                  type="text"
+                  placeholder="Description of the image"
+                  value={altText()}
+                  onInput={(e) => setAltText(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleInsert();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      handleClose();
+                    }
+                  }}
+                />
+              </div>
+              <Show when={error()}>
+                <div class="image-modal-error">{error()}</div>
+              </Show>
+            </div>
+            <div class="image-modal-footer">
+              <button class="image-modal-button secondary" onClick={handleClose}>
+                Cancel
+              </button>
+              <button class="image-modal-button primary" onClick={handleInsert}>
+                Insert
+              </button>
+            </div>
+          </div>
+        </div>
+      </Portal>
+    </Show>
+  );
+}
+
 function Select(props: {
   onChange: JSX.EventHandlerUnion<HTMLSelectElement, Event>;
   class: string;
@@ -711,6 +855,7 @@ export default function ToolbarPlugin() {
   const [isUnderline, setIsUnderline] = createSignal(false);
   const [isStrikethrough, setIsStrikethrough] = createSignal(false);
   const [isCode, setIsCode] = createSignal(false);
+  const [showImageModal, setShowImageModal] = createSignal(false);
 
   const updateToolbar = () => {
     const selection = $getSelection();
@@ -987,13 +1132,7 @@ export default function ToolbarPlugin() {
       </button>
       <button
         onClick={() => {
-          const src = prompt("Enter image URL:");
-          if (src) {
-            editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
-              src,
-              altText: "Image",
-            });
-          }
+          setShowImageModal(true);
         }}
         class="toolbar-item spaced"
         aria-label="Insert Image"
@@ -1015,6 +1154,16 @@ export default function ToolbarPlugin() {
       >
         <IconTable />
       </button>
+      <ImageUrlModal
+        isOpen={showImageModal()}
+        onClose={() => setShowImageModal(false)}
+        onInsert={(url, altText) => {
+          editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+            src: url,
+            altText: altText,
+          });
+        }}
+      />
     </div>
   );
 }
