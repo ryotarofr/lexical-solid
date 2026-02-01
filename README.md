@@ -1,25 +1,73 @@
-# Lexical-Solid
+# @ryotarofr/lexical-solid
 
-SolidJS port of `@lexical/react`
+SolidJS port of `@lexical/react` - A powerful rich text editor framework for SolidJS.
 
-This is a SolidJS port of [@lexical/react](https://www.npmjs.com/package/@lexical/react) (always based on the same `@lexical/react` version as the pinned [lexical-dependencies](#lexical-dependencies), see that section of the README for the current version).
+This is a fork of [lexical-solid](https://github.com/mosheduminer/lexical-solid) by Moshe David Uminer, with updates and improvements.
 
-If you're using this library, I'd appreciate it if you let me know (in github discussions or in the lexical discord)!
+## Installation
 
-# Installing
+```bash
+npm install @ryotarofr/lexical-solid
+```
 
-`npm install lexical-solid`
+or using your preferred package manager:
 
-or using the package manager of your choice.
+```bash
+pnpm add @ryotarofr/lexical-solid
+yarn add @ryotarofr/lexical-solid
+```
 
-This repository uses `pnpm`, but if you are only a consumer of this library, you do not need it.
+## Lexical Dependencies
 
-# Lexical Dependencies
+Currently using lexical packages version `0.39.0`, ported from [@lexical/react](https://www.npmjs.com/package/@lexical/react) of the same version.
 
-Currently using lexical packages version `0.30.0`, and ported from [@lexical/react](https://www.npmjs.com/package/@lexical/react) of the same version tag.
+This package pins `lexical` and the `@lexical/*` packages to specific minor versions.
 
-This package pins `lexical` and the `@lexical/*` packages to specific minor versions. This means that you can only upgrade your lexical version to the latest _patch_ version compatible with the current version. Attempting to upgrade the minor version will result in a broken state due to mismatched packages. See [#5](https://github.com/mosheduminer/lexical-solid/issues/5) for some discussion of the pinning strategy.
+## Basic Usage
 
-# License
+```tsx
+import { LexicalComposer } from "@ryotarofr/lexical-solid/LexicalComposer";
+import { RichTextPlugin } from "@ryotarofr/lexical-solid/LexicalRichTextPlugin";
+import { ContentEditable } from "@ryotarofr/lexical-solid/LexicalContentEditable";
+import { HistoryPlugin } from "@ryotarofr/lexical-solid/LexicalHistoryPlugin";
+import { LexicalErrorBoundary } from "@ryotarofr/lexical-solid/LexicalErrorBoundary";
 
-This code in this repository is very similar to the source react code, with modifications for use with SolidJS. The license distributed with `@lexical/react` can be found in [LICENSE-UPSTREAM](./LICENSE-UPSTREAM).
+const initialConfig = {
+  namespace: "MyEditor",
+  theme: {},
+  onError: (error: Error) => console.error(error),
+};
+
+function Editor() {
+  return (
+    <LexicalComposer initialConfig={initialConfig}>
+      <RichTextPlugin
+        contentEditable={<ContentEditable />}
+        placeholder={<div>Enter some text...</div>}
+        errorBoundary={LexicalErrorBoundary}
+      />
+      <HistoryPlugin />
+    </LexicalComposer>
+  );
+}
+```
+
+## Available Plugins
+
+- `LexicalComposer` - Core composer component
+- `RichTextPlugin` / `PlainTextPlugin` - Text editing plugins
+- `HistoryPlugin` - Undo/redo support
+- `LinkPlugin` - Link handling
+- `ListPlugin` - Ordered/unordered lists
+- `CheckListPlugin` - Checkbox lists
+- `TablePlugin` - Table support
+- `MarkdownShortcutPlugin` - Markdown shortcuts
+- `AutoFocusPlugin` - Auto focus on mount
+- `OnChangePlugin` - Editor state change listener
+- And more...
+
+## License
+
+MIT License - See [LICENSE](./LICENSE) for details.
+
+This project is based on [@lexical/react](https://github.com/facebook/lexical) by Meta Platforms, Inc. (MIT License).
