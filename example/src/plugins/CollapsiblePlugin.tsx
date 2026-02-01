@@ -10,6 +10,7 @@ import {
   KEY_ARROW_LEFT_COMMAND,
   KEY_ARROW_RIGHT_COMMAND,
   KEY_ARROW_UP_COMMAND,
+  KEY_BACKSPACE_COMMAND,
   NodeKey,
 } from "lexical";
 import { onCleanup, onMount, JSX } from "solid-js";
@@ -20,6 +21,7 @@ import {
   $createCollapsibleContentNode,
   $createCollapsibleTitleNode,
   $isCollapsibleContainerNode,
+  $isCollapsibleContentNode,
   $isCollapsibleTitleNode,
   CollapsibleContainerNode,
   CollapsibleContentNode,
@@ -106,9 +108,49 @@ export default function CollapsiblePlugin(): JSX.Element | null {
             const node = selection.anchor.getNode();
             const container = $findMatchingParent(node, $isCollapsibleContainerNode);
 
-            if (container && !container.getOpen()) {
-              const sibling = container.getNextSibling();
-              if (sibling) {
+            if (!container) {
+              return false;
+            }
+
+            // When closed, skip to next sibling
+            if (!container.getOpen()) {
+              let sibling = container.getNextSibling();
+              // If no next sibling, create a new paragraph after the container
+              if (!sibling) {
+                const newParagraph = $createParagraphNode();
+                container.insertAfter(newParagraph);
+                sibling = newParagraph;
+              }
+              sibling.selectStart();
+              event?.preventDefault();
+              return true;
+            }
+
+            // When open: navigate from title to content
+            const title = $findMatchingParent(node, $isCollapsibleTitleNode);
+            if (title) {
+              const content = title.getNextSibling();
+              if ($isCollapsibleContentNode(content)) {
+                content.selectStart();
+                event?.preventDefault();
+                return true;
+              }
+            }
+
+            // When open: navigate from content to next sibling outside container
+            const content = $findMatchingParent(node, $isCollapsibleContentNode);
+            if (content) {
+              const lastChild = content.getLastChild();
+              const anchorNode = selection.anchor.getNode();
+              // Check if at the end of content
+              if (lastChild && (anchorNode === lastChild || lastChild.isParentOf(anchorNode))) {
+                let sibling = container.getNextSibling();
+                // If no next sibling, create a new paragraph after the container
+                if (!sibling) {
+                  const newParagraph = $createParagraphNode();
+                  container.insertAfter(newParagraph);
+                  sibling = newParagraph;
+                }
                 sibling.selectStart();
                 event?.preventDefault();
                 return true;
@@ -131,7 +173,40 @@ export default function CollapsiblePlugin(): JSX.Element | null {
             const node = selection.anchor.getNode();
             const container = $findMatchingParent(node, $isCollapsibleContainerNode);
 
-            if (container && !container.getOpen()) {
+            if (!container) {
+              return false;
+            }
+
+            // When closed, skip to previous sibling
+            if (!container.getOpen()) {
+              const sibling = container.getPreviousSibling();
+              if (sibling) {
+                sibling.selectEnd();
+                event?.preventDefault();
+                return true;
+              }
+              return false;
+            }
+
+            // When open: navigate from content to title
+            const content = $findMatchingParent(node, $isCollapsibleContentNode);
+            if (content) {
+              const firstChild = content.getFirstChild();
+              const anchorNode = selection.anchor.getNode();
+              // Check if at the beginning of content
+              if (firstChild && (anchorNode === firstChild || firstChild.isParentOf(anchorNode)) && selection.anchor.offset === 0) {
+                const title = content.getPreviousSibling();
+                if ($isCollapsibleTitleNode(title)) {
+                  title.selectEnd();
+                  event?.preventDefault();
+                  return true;
+                }
+              }
+            }
+
+            // When open: navigate from title to previous sibling outside container
+            const title = $findMatchingParent(node, $isCollapsibleTitleNode);
+            if (title && selection.anchor.offset === 0) {
               const sibling = container.getPreviousSibling();
               if (sibling) {
                 sibling.selectEnd();
@@ -187,6 +262,75 @@ export default function CollapsiblePlugin(): JSX.Element | null {
                 container.setOpen(true);
                 event?.preventDefault();
                 return true;
+              }
+            }
+
+            return false;
+          },
+          COMMAND_PRIORITY_LOW
+        ),
+
+        // Handle backspace in collapsible
+        editor.registerCommand(
+          KEY_BACKSPACE_COMMAND,
+          (event) => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+              return false;
+            }
+
+            const node = selection.anchor.getNode();
+            const container = $findMatchingParent(node, $isCollapsibleContainerNode);
+
+            if (!container) {
+              return false;
+            }
+
+            // Check if in title
+            const title = $findMatchingParent(node, $isCollapsibleTitleNode);
+            if (title) {
+              // Check if title is empty (only has empty paragraph or no text)
+              const titleTextContent = title.getTextContent();
+              if (titleTextContent.length === 0 && selection.anchor.offset === 0) {
+                // Delete entire collapsible when title is empty
+                // Get parent and siblings BEFORE removing the container
+                const parent = container.getParent();
+                const prevSibling = container.getPreviousSibling();
+                container.remove();
+                if (prevSibling) {
+                  prevSibling.selectEnd();
+                } else if (parent) {
+                  // Create a new paragraph if no previous sibling
+                  const newParagraph = $createParagraphNode();
+                  parent.append(newParagraph);
+                  newParagraph.select();
+                }
+                event?.preventDefault();
+                return true;
+              }
+              // Otherwise, let default backspace behavior handle it
+              return false;
+            }
+
+            // Check if in content
+            const content = $findMatchingParent(node, $isCollapsibleContentNode);
+            if (content) {
+              const firstChild = content.getFirstChild();
+              const anchorNode = selection.anchor.getNode();
+
+              // Check if at the very beginning of content
+              if (
+                selection.anchor.offset === 0 &&
+                firstChild &&
+                (anchorNode === firstChild || firstChild.isParentOf(anchorNode))
+              ) {
+                // Move to title instead of deleting the line
+                const titleNode = content.getPreviousSibling();
+                if ($isCollapsibleTitleNode(titleNode)) {
+                  titleNode.selectEnd();
+                  event?.preventDefault();
+                  return true;
+                }
               }
             }
 
