@@ -6,7 +6,7 @@ This is a fork of [lexical-solid](https://github.com/mosheduminer/lexical-solid)
 
 ## Example
 
-[view demo](lexical-solid-example.vercel.app/)
+[view demo](https://lexical-solid-example.vercel.app/)
 
 ## Installation
 
