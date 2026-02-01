@@ -750,7 +750,10 @@ export default function ToolbarPlugin() {
       const element =
         anchorNode.getKey() === "root"
           ? anchorNode
-          : anchorNode.getTopLevelElementOrThrow();
+          : anchorNode.getTopLevelElement();
+
+      if (element === null) return;
+
       const elementKey = element.getKey();
       const elementDOM = editor.getElementByKey(elementKey);
       if (elementDOM !== null) {
