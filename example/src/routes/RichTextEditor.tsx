@@ -1,5 +1,7 @@
 import "./PlainTextEditor.css";
-import Editor from "../components/RichTextEditor";
+import { clientOnly } from "@solidjs/start";
+
+const Editor = clientOnly(() => import("../components/RichTextEditor"));
 
 export default function () {
   return (

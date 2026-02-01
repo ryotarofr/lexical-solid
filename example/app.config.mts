@@ -2,7 +2,8 @@ import { defineConfig } from "@solidjs/start/config";
 
 export default defineConfig({
   server: {
-    preset: "vercel",
+    // Use vercel preset only in production (Vercel sets VERCEL env var)
+    preset: process.env.VERCEL ? "vercel" : "node-server",
   },
   vite: {
     resolve: {
