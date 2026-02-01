@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter lexical-solid build && cd example && pnpm build",
+  "outputDirectory": "example/.vercel/output",
+  "installCommand": "pnpm install",
+  "framework": null
+}
