@@ -186,7 +186,8 @@ export class CollapsibleTitleNode extends ElementNode {
   }
 
   collapseAtStart(): boolean {
-    this.getParentOrThrow().insertBefore(this);
+    // Return true to prevent default behavior (merging with previous node)
+    // This keeps the collapsible structure intact
     return true;
   }
 }
@@ -258,10 +259,6 @@ export class CollapsibleContentNode extends ElementNode {
       type: "collapsible-content",
       version: 1,
     };
-  }
-
-  isShadowRoot(): boolean {
-    return true;
   }
 }
 
