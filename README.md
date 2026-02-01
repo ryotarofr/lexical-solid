@@ -4,6 +4,10 @@ SolidJS port of `@lexical/react` - A powerful rich text editor framework for Sol
 
 This is a fork of [lexical-solid](https://github.com/mosheduminer/lexical-solid) by Moshe David Uminer, with updates and improvements.
 
+## Example
+
+[view demo](lexical-solid-example.vercel.app/)
+
 ## Installation
 
 ```bash
